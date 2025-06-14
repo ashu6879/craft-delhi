@@ -14,15 +14,15 @@ exports.createEmailRecord = (email, callback) => {
 };
 
 exports.updateUserDetails = (userData, callback) => {
-  const { email, first_name, last_name, password, phone_number, dob } = userData;
+  const { email, first_name, last_name, password, phone_number, dob, role } = userData;
   const sql = `
     UPDATE users SET 
       first_name = ?, last_name = ?, password = ?, 
       phone_number = ?, date_of_birth = ?, user_status = true, 
-      user_approval = 0, role = 3
+      user_approval = 0, role = ?
     WHERE email = ? AND is_email_verified = true
   `;
-  db.query(sql, [first_name, last_name, password, phone_number, dob, email], callback);
+  db.query(sql, [first_name, last_name, password, phone_number, dob, role, email], callback);
 };
 
 exports.markEmailVerified = (email, callback) => {
