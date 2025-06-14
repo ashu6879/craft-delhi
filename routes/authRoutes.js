@@ -5,6 +5,13 @@ const auth = require('../controllers/authController');
 router.post('/register-details', auth.register);
 router.post('/login', auth.login);
 
+//forget password
+router.post('/forgot-password', auth.sendOtp);         // Reuse sendOtp
+router.post('/reset-password', auth.resetPassword);    // Handle OTP + new password
+
+
+
+//for sending otp
 router.post('/send-otp', auth.sendOtp);
 router.post('/verify-otp', auth.verifyOtp);
 

@@ -36,4 +36,9 @@ exports.markEmailVerified = (email, callback) => {
 exports.createEmailOnlyUser = (email, callback) => {
     db.query('INSERT INTO users (email) VALUES (?)', [email], callback);
 };
+
+exports.updatePasswordByEmail = (email, newPassword, callback) => {
+  const sql = 'UPDATE users SET password = ? WHERE email = ?';
+  db.query(sql, [newPassword, email], callback);
+};
   

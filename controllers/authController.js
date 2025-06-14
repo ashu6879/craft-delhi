@@ -74,10 +74,23 @@ exports.register = (req, res) => {
 
   userModel.findByEmail(email, (err, results) => {
     if (err) return res.status(500).json({ error: err });
-    if (!results.length || !results[0].is_email_verified) {
+
+    if (!results.length) {
+      return res.status(404).json({ message: 'Email not found. Please verify email first.' });
+    }
+
+    const user = results[0];
+
+    if (user.is_email_verified && user.first_name) {
+      // Already registered
+      return res.status(400).json({ message: 'User already exists. Please login.' });
+    }
+
+    if (!user.is_email_verified) {
       return res.status(400).json({ message: 'Email not verified' });
     }
 
+    // Update user details since verified but not yet registered fully
     userModel.updateUserDetails({
       email,
       first_name,
@@ -91,6 +104,7 @@ exports.register = (req, res) => {
     });
   });
 };
+
 
 // Login
 exports.login = (req, res) => {
@@ -120,5 +134,29 @@ exports.login = (req, res) => {
     );
 
     res.json({ token, role: user.role });
+  });
+};
+
+//reset password
+exports.resetPassword = (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  otpModel.findValidOtp(email, otp, (err, results) => {
+    if (err) return res.status(500).json({ error: err });
+    if (!results.length) return res.status(400).json({ message: 'Invalid or expired OTP' });
+
+    const otpEntry = results[0];
+
+    bcrypt.hash(newPassword, 10, (err2, hashedPassword) => {
+      if (err2) return res.status(500).json({ error: err2 });
+
+      userModel.updatePasswordByEmail(email, hashedPassword, (err3) => {
+        if (err3) return res.status(500).json({ error: err3 });
+
+        otpModel.markOtpVerified(otpEntry.id, () => {
+          res.json({ message: 'Password reset successful' });
+        });
+      });
+    });
   });
 };
