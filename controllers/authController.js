@@ -101,6 +101,15 @@ exports.login = (req, res) => {
     if (!results.length) return res.status(404).json({ message: 'User not found' });
 
     const user = results[0];
+
+    if (user.user_approval === 0) {
+      return res.status(200).json({ message: 'Pending approval from admin. We will notify you once approved.' });
+    }
+
+    if (user.user_approval === 2) {
+      return res.status(403).json({ message: 'Your registration has been rejected by admin.' });
+    }
+
     const isMatch = bcrypt.compareSync(password, user.password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
