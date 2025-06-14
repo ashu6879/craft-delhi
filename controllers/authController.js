@@ -8,6 +8,9 @@ const userModel = require('../models/userModel');
 // Send OTP to email
 exports.sendOtp = (req, res) => {
   const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -49,6 +52,10 @@ exports.sendOtp = (req, res) => {
 // Verify OTP
 exports.verifyOtp = (req, res) => {
   const { email, otp } = req.body;
+  
+  if (!email || !otp) {
+    return res.status(400).json({ message: 'Email and OTP are required' });
+  }
 
   otpModel.findValidOtp(email, otp, (err, results) => {
     if (err) return res.status(500).json({ error: err });
@@ -69,6 +76,10 @@ exports.verifyOtp = (req, res) => {
 // Complete Registration After Email Verification
 exports.register = (req, res) => {
   const { email, first_name, last_name, password, phone_number, dob } = req.body;
+
+  if (!email || !first_name || !last_name || !password || !phone_number || !dob) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
 
   const hashed = bcrypt.hashSync(password, 10);
 
@@ -110,6 +121,10 @@ exports.register = (req, res) => {
 exports.login = (req, res) => {
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
   userModel.findByEmail(email, (err, results) => {
     if (err) return res.status(500).json({ error: err });
     if (!results.length) return res.status(404).json({ message: 'User not found' });
@@ -140,6 +155,10 @@ exports.login = (req, res) => {
 //reset password
 exports.resetPassword = (req, res) => {
   const { email, otp, newPassword } = req.body;
+
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ message: 'Email, OTP, and new password are required' });
+  }
 
   otpModel.findValidOtp(email, otp, (err, results) => {
     if (err) return res.status(500).json({ error: err });
