@@ -13,8 +13,15 @@ exports.sendOtp = (req, res) => {
     return res.status(400).json({ status: false, message: 'Email is required' });
   }
 
+  // Validate purpose
+  const allowedPurposes = ['verify', 'reset'];
+  if (!allowedPurposes.includes(purpose)) {
+    return res.status(400).json({ status: false, message: 'Invalid OTP purpose' });
+  }
+
+  const otp_type = purpose === 'reset' ? 'forgot_password' : 'email_verification';
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
   const transporter = nodemailer.createTransport({
     host: 'smtp.hostinger.com',
@@ -36,13 +43,11 @@ exports.sendOtp = (req, res) => {
   userModel.findByEmail(email, (err, results) => {
     if (err) return res.status(500).json({ status: false, error: err });
 
-    // Check based on purpose
     if (purpose === 'reset') {
       if (!results.length) {
         return res.status(404).json({ status: false, message: 'Email not found. Cannot reset password.' });
       }
     } else {
-      // Purpose: verify
       if (!results.length) {
         userModel.createEmailOnlyUser(email, (e) => {
           if (e) return res.status(500).json({ status: false, error: e });
@@ -50,7 +55,7 @@ exports.sendOtp = (req, res) => {
       }
     }
 
-    otpModel.saveOtp(email, otp, expiresAt, (err2) => {
+    otpModel.saveOtp(email, otp, expiresAt, otp_type, (err2) => {
       if (err2) return res.status(500).json({ status: false, error: err2 });
 
       transporter.sendMail(mailOptions, (error) => {
@@ -61,30 +66,43 @@ exports.sendOtp = (req, res) => {
   });
 };
 
-
 // Verify OTP
 exports.verifyOtp = (req, res) => {
-  const { email, otp } = req.body;
+  const { email, otp, purpose = 'verify' } = req.body;
 
   if (!email || !otp) {
     return res.status(400).json({ status: false, message: 'Email and OTP are required' });
   }
 
-  otpModel.findValidOtp(email, otp, (err, results) => {
+  // Map purpose to otp_type
+  const otp_type = purpose === 'reset' ? 'forgot_password' : 'email_verification';
+
+  otpModel.findValidOtp(email, otp, otp_type, (err, results) => {
     if (err) return res.status(500).json({ status: false, error: err });
     if (!results.length) return res.status(400).json({ status: false, message: 'Invalid or expired OTP' });
 
     const otpEntry = results[0];
 
-    userModel.markEmailVerified(email, (err2) => {
+    const afterVerification = () => {
+      res.json({ status: true, message: 'OTP verified successfully' });
+    };
+
+    otpModel.markOtpVerified(otpEntry.id, (err2) => {
       if (err2) return res.status(500).json({ status: false, error: err2 });
 
-      otpModel.markOtpVerified(otpEntry.id, () => {
-        res.json({ status: true, message: 'Email verified successfully' });
-      });
+      if (otp_type === 'email_verification') {
+        userModel.markEmailVerified(email, (err3) => {
+          if (err3) return res.status(500).json({ status: false, error: err3 });
+          afterVerification();
+        });
+      } else {
+        afterVerification(); // Skip marking email verified for forgot password
+      }
     });
   });
 };
+
+
 
 // Complete Registration After Email Verification
 exports.register = (req, res) => {
@@ -165,17 +183,18 @@ exports.login = (req, res) => {
 
 // Reset Password
 exports.resetPassword = (req, res) => {
-  const { email, otp, newPassword } = req.body;
+  const { email, newPassword } = req.body;
 
-  if (!email || !otp || !newPassword) {
-    return res.status(400).json({ status: false, message: 'Email, OTP, and new password are required' });
+  if (!email || !newPassword) {
+    return res.status(400).json({ status: false, message: 'Email and new password are required' });
   }
 
-  otpModel.findValidOtp(email, otp, (err, results) => {
+  otpModel.checkIfOtpVerified(email, 'forgot_password', (err, isVerified) => {
     if (err) return res.status(500).json({ status: false, error: err });
-    if (!results.length) return res.status(400).json({ status: false, message: 'Invalid or expired OTP' });
 
-    const otpEntry = results[0];
+    if (!isVerified) {
+      return res.status(400).json({ status: false, message: 'OTP not verified. Please verify your OTP first.' });
+    }
 
     bcrypt.hash(newPassword, 10, (err2, hashedPassword) => {
       if (err2) return res.status(500).json({ status: false, error: err2 });
@@ -183,10 +202,11 @@ exports.resetPassword = (req, res) => {
       userModel.updatePasswordByEmail(email, hashedPassword, (err3) => {
         if (err3) return res.status(500).json({ status: false, error: err3 });
 
-        otpModel.markOtpVerified(otpEntry.id, () => {
+        otpModel.clearOtpVerification(email, 'forgot_password', () => {
           res.json({ status: true, message: 'Password reset successful' });
         });
       });
     });
   });
 };
+
