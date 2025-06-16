@@ -16,18 +16,14 @@ exports.sendOtp = (req, res) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  const auth = {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  };
-
-  console.log('Auth being used:', auth);
-
   const transporter = nodemailer.createTransport({
     host: 'smtp.hostinger.com',
     port: 465,
     secure: true,
-    auth: auth,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
   });
 
   const mailOptions = {
