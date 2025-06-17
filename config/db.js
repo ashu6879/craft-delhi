@@ -8,4 +8,5 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
 });
 
-module.exports = pool;
+// 👇 Wrap pool with .promise() to support async/await
+module.exports = pool.promise();
