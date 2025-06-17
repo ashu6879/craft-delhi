@@ -1,6 +1,6 @@
 const Category = require('../models/categoryModel');
 
-exports.createCategory = async (req, res) => {
+exports.createCategory = (req, res) => {
   const { categoryName, sellerId } = req.body;
 
   if (!categoryName) {
@@ -10,8 +10,12 @@ exports.createCategory = async (req, res) => {
   const createdBy = sellerId ? 'seller' : 'admin';
   const creatorId = sellerId || null;
 
-  try {
-    const [existing] = await Category.findCategoryByNameAndCreator(categoryName, createdBy, creatorId);
+  // Step 1: Check if category already exists
+  Category.findCategoryByNameAndCreator(categoryName, createdBy, creatorId, (err, existing) => {
+    if (err) {
+      console.error('DB Error:', err);
+      return res.status(500).json({ message: 'Server error' });
+    }
 
     if (existing.length > 0) {
       return res.status(409).json({
@@ -20,15 +24,27 @@ exports.createCategory = async (req, res) => {
       });
     }
 
-    const [insertResult] = await Category.createCategory(categoryName, createdBy, creatorId);
-    const [newCategory] = await Category.findCategoryById(insertResult.insertId);
+    // Step 2: Insert new category
+    Category.createCategory(categoryName, createdBy, creatorId, (err, insertResult) => {
+      if (err) {
+        console.error('Insert Error:', err);
+        return res.status(500).json({ message: 'Server error' });
+      }
 
-    res.status(201).json({
-      message: 'Category created successfully',
-      category: newCategory[0]
+      const insertedId = insertResult.insertId;
+
+      // Step 3: Fetch inserted category
+      Category.findCategoryById(insertedId, (err, newCategory) => {
+        if (err) {
+          console.error('Fetch Error:', err);
+          return res.status(500).json({ message: 'Server error' });
+        }
+
+        res.status(201).json({
+          message: 'Category created successfully',
+          category: newCategory[0]
+        });
+      });
     });
-  } catch (error) {
-    console.error('Error creating category:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
+  });
 };
