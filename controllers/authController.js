@@ -210,3 +210,16 @@ exports.resetPassword = (req, res) => {
   });
 };
 
+exports.tempApproval = (req, res) => {
+  const { email, approvalstatus } = req.body;
+
+  if (!email || ! approvalstatus) {
+    return res.status(400).json({ status: false, message: 'Email and approvalstatus are required' });
+  }
+
+  userModel.tempApproval(email,approvalstatus, (err, results) => {
+    if (err) return res.status(500).json({ status: false, error: err });
+    res.json({ status: true,  message: 'Email Approved Successfully.' });
+  });
+};
+

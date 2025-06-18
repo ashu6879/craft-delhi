@@ -42,3 +42,12 @@ exports.updatePasswordByEmail = (email, newPassword, callback) => {
   db.query(sql, [newPassword, email], callback);
 };
   
+
+
+exports.tempApproval = (email,status, callback) => {
+  db.query(
+    'UPDATE users SET user_approval = ? WHERE email = ?',
+    [status,email],
+    callback
+  );
+};

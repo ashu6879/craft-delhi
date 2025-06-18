@@ -15,4 +15,7 @@ router.post('/reset-password', auth.resetPassword);    // Handle OTP + new passw
 router.post('/send-otp', auth.sendOtp);
 router.post('/verify-otp', auth.verifyOtp);
 
+
+router.post('/temp-approval', auth.tempApproval);
+
 module.exports = router;
