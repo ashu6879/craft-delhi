@@ -7,11 +7,11 @@ exports.addProduct = async (req, res) => {
     const {
       name, description, price, category_id,
       stock, dimension, package_weight,
-      weight_type, warranty_type
+      weight_type, warranty_type, seller_id
     } = req.body;
 
-    if (!name || !price || !category_id) {
-      return res.status(400).json({ error: 'Name, price, and category_id are required.' });
+    if (!name || !price || !category_id || !seller_id) {
+      return res.status(400).json({ error: 'Name, price, seller_id, and category_id are required.' });
     }
 
     // Generate SKU: clean + no hyphens + alphanumeric only
@@ -58,7 +58,8 @@ exports.addProduct = async (req, res) => {
       main_image_url: mainImage,
       gallery_images: JSON.stringify(galleryImages),
       video_url: videoUrl,
-      reel_url: reelUrl
+      reel_url: reelUrl,
+      seller_id
     };
 
     await productModel.insert(productData);
