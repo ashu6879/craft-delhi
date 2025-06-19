@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
 const { upload } = require('../utils/s3Uploader');
+const { verifyToken } = require('../utils/authMiddleware');
+
 
 router.post(
   '/add',
@@ -11,7 +13,7 @@ router.post(
     { name: 'product_video', maxCount: 1 },
     { name: 'product_reel', maxCount: 1 }
   ]),
-  productController.addProduct
+  verifyToken, productController.addProduct
 );
 
 module.exports = router;
