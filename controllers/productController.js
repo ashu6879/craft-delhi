@@ -11,7 +11,7 @@ exports.addProduct = async (req, res) => {
     } = req.body;
 
     if (!name || !price || !category_id || !seller_id) {
-      return res.status(400).json({ error: 'Name, price, seller_id, and category_id are required.' });
+      return res.status(400).json({ status: false,error: 'Name, price, seller_id, and category_id are required.' });
     }
 
     // Generate SKU: clean + no hyphens + alphanumeric only
@@ -63,10 +63,51 @@ exports.addProduct = async (req, res) => {
     };
 
     await productModel.insert(productData);
-    res.status(200).json({ message: 'Product added successfully', product_sku });
+    res.status(200).json({ status: true,message: 'Product added successfully', product_sku });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Something went wrong' });
+    res.status(500).json({status: false, error: 'Something went wrong' });
   }
+};
+
+exports.getProducts = (req, res) => {
+  productModel.getallProducts((err, products) => {
+    if (err) {
+      console.error('DB Error:', err);
+      return res.status(500).json({status: false, message: 'Server error' });
+    }
+
+    // Return all products
+    return res.status(200).json({
+      status: true,
+      message: 'products fetched successfully',
+      data: products
+    });
+  });
+};
+
+exports.getProductsbyID = (req, res) => {
+  const { product_id } = req.params;
+
+  if (!product_id) {
+    return res.status(400).json({ status: false, message: 'Product ID is required' });
+  }
+
+  productModel.getProductbyID(product_id, (err, product) => {
+    if (err) {
+      console.error('DB Error:', err);
+      return res.status(500).json({ status: false, message: 'Server error' });
+    }
+
+    if (!product) {
+      return res.status(404).json({ status: false, message: 'Product not found' });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'Product fetched successfully',
+      data: product
+    });
+  });
 };

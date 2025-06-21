@@ -15,5 +15,7 @@ router.post(
   ]),
   verifyToken, productController.addProduct
 );
+router.get('/get',verifyToken ,productController.getProducts);
+router.get('/getbyid/:product_id',verifyToken ,productController.getProductsbyID);
 
 module.exports = router;
