@@ -28,14 +28,6 @@ exports.createCategory = (name, createdBy, creatorId, callback) => {
   });
 };
 
-// Get a category by ID
-exports.findCategoryById = (id, callback) => {
-  db.query(`SELECT * FROM product_categories WHERE id = ?`, [id], (err, results) => {
-    if (err) return callback(err, null);
-    callback(null, results);
-  });
-};
-
 exports.getallCategories = (callback) => {
   const sql = 'SELECT * FROM product_categories'; // Adjust table name if needed
   db.query(sql, (err, results) => {
@@ -49,5 +41,38 @@ exports.getCategorybyID = (id, callback) => {
   db.query(sql, [id], (err, results) => {
     if (err) return callback(err, null);
     return callback(null, results[0]); // assuming you want a single product
+  });
+};
+
+exports.deleteCategoryID = (id, callback) => {
+  const sql = 'DELETE FROM product_categories WHERE id = ?';
+  db.query(sql, [id], (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results); // returns info about the delete operation
+  });
+};
+
+exports.updateCategoryByID = (id, data, callback) => {
+  const fields = [];
+  const values = [];
+
+  // Dynamically build SET clause
+  for (let key in data) {
+    if (data[key] !== undefined) {
+      fields.push(`${key} = ?`);
+      values.push(data[key]);
+    }
+  }
+
+  if (fields.length === 0) {
+    return callback(null, { affectedRows: 0 }); // No update fields provided
+  }
+
+  const sql = `UPDATE product_categories SET ${fields.join(', ')} WHERE id = ?`;
+  values.push(id);
+
+  db.query(sql, values, (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results);
   });
 };

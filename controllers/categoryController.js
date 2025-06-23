@@ -1,4 +1,6 @@
 const Category = require('../models/categoryModel');
+const authorizeAction = require('../utils/authorizeAction');
+
 
 exports.createCategory = (req, res) => {
   const { categoryName, sellerId } = req.body;
@@ -35,7 +37,7 @@ exports.createCategory = (req, res) => {
       const insertedId = insertResult.insertId;
 
       // Step 3: Fetch inserted category
-      Category.findCategoryById(insertedId, (err, newCategory) => {
+      Category.getCategorybyID(insertedId, (err, newCategory) => {
         if (err) {
           console.error('Fetch Error:', err);
           return res.status(500).json({ status: false,message: 'Server error' });
@@ -89,6 +91,73 @@ exports.getCategoryID = (req, res) => {
       status: true,
       message: 'Category fetched successfully',
       data: category
+    });
+  });
+};
+
+// DELETE Category
+exports.deleteCategory = (req, res) => {
+  const { category_id } = req.params;
+  const userId = req.user?.id;
+
+  if (!category_id) {
+    return res.status(400).json({ status: false, message: 'Category ID is required' });
+  }
+
+  authorizeAction(Category, category_id, userId, {
+    getMethod: 'getCategorybyID',
+    ownerField: 'creator_id'
+  }, (authError, category) => {
+    if (authError) {
+      return res.status(authError.code).json({ status: false, message: authError.message });
+    }
+
+    Category.deleteCategoryID(category_id, (err, result) => {
+      if (err) {
+        return res.status(500).json({ status: false, message: 'Error deleting category', error: err });
+      }
+
+      if (result.affectedRows > 0) {
+        return res.status(200).json({ status: true, message: 'Category deleted successfully' });
+      } else {
+        return res.status(400).json({ status: false, message: 'Category deletion failed' });
+      }
+    });
+  });
+};
+
+// UPDATE Category
+exports.updateCategory = (req, res) => {
+  const { category_id } = req.params;
+  const { name } = req.body;
+  const userId = req.user?.id;
+
+  if (!category_id) {
+    return res.status(400).json({ status: false, message: 'Category ID is required' });
+  }
+
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ status: false, message: 'Category name is required' });
+  }
+
+  authorizeAction(Category, category_id, userId, {
+    getMethod: 'getCategorybyID',
+    ownerField: 'creator_id'
+  }, (authError, category) => {
+    if (authError) {
+      return res.status(authError.code).json({ status: false, message: authError.message });
+    }
+
+    Category.updateCategoryByID(category_id, { name }, (err, result) => {
+      if (err) {
+        return res.status(500).json({ status: false, message: 'Error updating category', error: err });
+      }
+
+      if (result.affectedRows > 0) {
+        return res.status(200).json({ status: true, message: 'Category updated successfully' });
+      } else {
+        return res.status(400).json({ status: false, message: 'Category update failed' });
+      }
     });
   });
 };
