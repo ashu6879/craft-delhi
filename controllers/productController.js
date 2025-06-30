@@ -228,7 +228,6 @@ exports.deleteProduct = (req, res) => {
   });
 };
 
-// UPDATE Category
 exports.updateProduct = async (req, res) => {
   const { product_id } = req.params;
   const userId = req.user?.id;
@@ -266,8 +265,22 @@ exports.updateProduct = async (req, res) => {
         dimension, package_weight, weight_type, warranty_type
       };
 
-      // 1️⃣ Handle gallery_images (body or file uploads)
-      if (req.body.gallery_images) {
+      // 🔄 Unified gallery_images logic
+      if (req.files?.gallery_images) {
+        try {
+          const oldGallery = JSON.parse(existingProduct.gallery_images || '[]');
+          if (Array.isArray(oldGallery)) {
+            await deleteFilesFromS3(oldGallery, bucketName);
+          }
+        } catch (err) {
+          console.error('Failed to parse existing gallery_images for deletion:', err.message);
+        }
+
+        const uploadedGallery = await Promise.all(
+          req.files.gallery_images.map(f => uploadToS3(f, 'gallery_images'))
+        );
+        updateData.gallery_images = JSON.stringify(uploadedGallery);
+      } else if (req.body.gallery_images) {
         try {
           const newGallery = JSON.parse(req.body.gallery_images);
           const oldGallery = JSON.parse(existingProduct.gallery_images || '[]');
@@ -275,82 +288,55 @@ exports.updateProduct = async (req, res) => {
           if (toDelete.length) await deleteFilesFromS3(toDelete, bucketName);
           updateData.gallery_images = JSON.stringify(newGallery);
         } catch (err) {
-          console.error('Gallery parsing error:', err);
+          console.error('Gallery parsing error (fallback):', err.message);
         }
       }
 
-      // 2️⃣ Handle newly uploaded files
-      if (req.files) {
-        // Main image
-        if (req.files.main_image?.[0]) {
-          if (existingProduct.main_image_url) {
-            await deleteFilesFromS3([existingProduct.main_image_url], bucketName);
-          }
-          updateData.main_image_url = await uploadToS3(req.files.main_image[0], 'main_image');
-        } else if (main_image_url && main_image_url !== existingProduct.main_image_url) {
+      // 📷 Main image
+      if (req.files?.main_image?.[0]) {
+        if (existingProduct.main_image_url) {
           await deleteFilesFromS3([existingProduct.main_image_url], bucketName);
-          updateData.main_image_url = main_image_url;
         }
-
-        // Gallery images
-        if (req.files.gallery_images) {
-          if (existingProduct.gallery_images) {
-            const oldGallery = JSON.parse(existingProduct.gallery_images || '[]');
-            await deleteFilesFromS3(oldGallery, bucketName);
-          }
-          const uploadedGallery = await Promise.all(
-            req.files.gallery_images.map(f => uploadToS3(f, 'gallery_images'))
-          );
-          updateData.gallery_images = JSON.stringify(uploadedGallery);
-        }
-
-        // Product video
-        if (req.files.product_video?.[0]) {
-          if (existingProduct.video_url) {
-            await deleteFilesFromS3([existingProduct.video_url], bucketName);
-          }
-          updateData.video_url = await uploadToS3(req.files.product_video[0], 'product_video');
-        } else if (video_url && video_url !== existingProduct.video_url) {
-          await deleteFilesFromS3([existingProduct.video_url], bucketName);
-          updateData.video_url = video_url;
-        }
-
-        // Product reel
-        if (req.files.product_reel?.[0]) {
-          if (existingProduct.reel_url) {
-            await deleteFilesFromS3([existingProduct.reel_url], bucketName);
-          }
-          updateData.reel_url = await uploadToS3(req.files.product_reel[0], 'product_reel');
-        } else if (reel_url && reel_url !== existingProduct.reel_url) {
-          await deleteFilesFromS3([existingProduct.reel_url], bucketName);
-          updateData.reel_url = reel_url;
-        }
-      } else {
-        // 3️⃣ Fallback raw URLs (if no files uploaded)
-        if (main_image_url && main_image_url !== existingProduct.main_image_url) {
-          await deleteFilesFromS3([existingProduct.main_image_url], bucketName);
-          updateData.main_image_url = main_image_url;
-        }
-        if (video_url && video_url !== existingProduct.video_url) {
-          await deleteFilesFromS3([existingProduct.video_url], bucketName);
-          updateData.video_url = video_url;
-        }
-        if (reel_url && reel_url !== existingProduct.reel_url) {
-          await deleteFilesFromS3([existingProduct.reel_url], bucketName);
-          updateData.reel_url = reel_url;
-        }
+        updateData.main_image_url = await uploadToS3(req.files.main_image[0], 'main_image');
+      } else if (main_image_url && main_image_url !== existingProduct.main_image_url) {
+        await deleteFilesFromS3([existingProduct.main_image_url], bucketName);
+        updateData.main_image_url = main_image_url;
       }
 
-      // 4️⃣ Perform DB update
+      // 📹 Product video
+      if (req.files?.product_video?.[0]) {
+        if (existingProduct.video_url) {
+          await deleteFilesFromS3([existingProduct.video_url], bucketName);
+        }
+        updateData.video_url = await uploadToS3(req.files.product_video[0], 'product_video');
+      } else if (video_url && video_url !== existingProduct.video_url) {
+        await deleteFilesFromS3([existingProduct.video_url], bucketName);
+        updateData.video_url = video_url;
+      }
+
+      // 🎞️ Product reel
+      if (req.files?.product_reel?.[0]) {
+        if (existingProduct.reel_url) {
+          await deleteFilesFromS3([existingProduct.reel_url], bucketName);
+        }
+        updateData.reel_url = await uploadToS3(req.files.product_reel[0], 'product_reel');
+      } else if (reel_url && reel_url !== existingProduct.reel_url) {
+        await deleteFilesFromS3([existingProduct.reel_url], bucketName);
+        updateData.reel_url = reel_url;
+      }
+
+      // ✅ Perform DB update
       productModel.updateProductByID(product_id, updateData, (err, result) => {
         if (err) {
           console.error('DB update error:', err);
           return res.status(500).json({ status: false, message: 'Error updating product', error: err });
         }
+
         if (result.affectedRows > 0) {
           return res.status(200).json({ status: true, message: 'Product updated successfully' });
+        } else {
+          return res.status(400).json({ status: false, message: 'No changes made to the product' });
         }
-        return res.status(400).json({ status: false, message: 'No changes made to the product' });
       });
 
     } catch (uploadErr) {
