@@ -46,4 +46,12 @@ const uploadToS3 = async (file, fieldname) => {
   return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 };
 
-module.exports = { upload, uploadToS3 };
+
+const getS3KeyFromUrl = (url) => {
+  const bucket = process.env.AWS_BUCKET_NAME;
+  const region = process.env.AWS_REGION;
+  const prefix = `https://${bucket}.s3.${region}.amazonaws.com/`;
+  return url.startsWith(prefix) ? url.replace(prefix, '') : null;
+};
+
+module.exports = { upload, uploadToS3, fieldMap, getS3KeyFromUrl };
