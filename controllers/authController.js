@@ -159,7 +159,6 @@ exports.login = (req, res) => {
     if (!results.length) return res.status(404).json({ status: false, message: 'User not found' });
 
     const user = results[0];
-
     if (user.user_approval === 0) {
       return res.status(200).json({ status: false, message: 'Pending approval from admin. We will notify you once approved.' });
     }
@@ -177,7 +176,7 @@ exports.login = (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.json({ status: true, token, role: user.role });
+    res.json({ status: true, token, role: user.role, id: user.id});
   });
 };
 
