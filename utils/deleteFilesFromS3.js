@@ -11,12 +11,16 @@ const s3 = new S3Client({
 /**
  * Extract S3 key from full URL.
  */
-const getS3KeyFromUrl = (url) => {
+const getS3KeyFromUrl = (input) => {
   try {
-    const urlObj = new URL(url);
-    return decodeURIComponent(urlObj.pathname).replace(/^\/+/, '');
+    if (input.startsWith('http')) {
+      const urlObj = new URL(input);
+      return decodeURIComponent(urlObj.pathname).replace(/^\/+/, '');
+    }
+    // Already a key, return as-is
+    return input;
   } catch (err) {
-    console.error('Invalid S3 URL:', url);
+    console.error('Invalid S3 URL:', input);
     return null;
   }
 };

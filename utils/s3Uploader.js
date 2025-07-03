@@ -23,8 +23,9 @@ const upload = multer({
 const fieldMap = {
   main_image: { folder: 'main_image', prefix: 'mi' },
   gallery_images: { folder: 'gallery_images', prefix: 'gi' },
-  product_video: { folder: 'product_video', prefix: 'vd' }, // ✅ Fix here
-  product_reel: { folder: 'product_reel', prefix: 'rl' }     // ✅ And here
+  product_video: { folder: 'product_video', prefix: 'vd' },
+  product_reel: { folder: 'product_reel', prefix: 'rl' },
+  store_image: { folder: 'store_image', prefix: 'si' } // ✅ Added this line
 };
 
 // Custom upload handler
