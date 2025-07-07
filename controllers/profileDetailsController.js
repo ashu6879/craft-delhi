@@ -1,0 +1,144 @@
+const profileDetails = require('../models/profileDetails');
+const authorizeAction = require('../utils/authorizeAction');
+const { uploadToS3, getS3KeyFromUrl } = require('../utils/s3Uploader');
+const { deleteFilesFromS3 } = require('../utils/deleteFilesFromS3');
+const bucketName = process.env.AWS_BUCKET_NAME;
+
+exports.updateProfile = async (req, res) => {
+  const userId = req.user?.id;
+
+  if (!userId || isNaN(userId)) {
+    return res.status(400).json({ status: false, message: 'Invalid User ID' });
+  }
+
+  try {
+    const {
+      phone_number,
+      city,
+      date_of_birth,
+      office_address,
+      home_address,
+    } = req.body;
+
+    let profile_image = null;
+
+    // First check if user_details entry exists
+    profileDetails.getProfileDetails(userId, async (err, existingUser) => {
+      if (err) {
+        console.error('MySQL error:', err);
+        return res.status(500).json({ status: false, message: 'Internal server error' });
+      }
+      // If no profile exists, create it
+      if (!existingUser) {
+        return profileDetails.createDetails({ userId }, (createErr) => {
+          if (createErr) {
+            return res.status(500).json({ status: false, message: 'Error creating profile details' });
+          }
+          // Retry after creation
+          return exports.updateProfile(req, res);
+        });
+      }
+
+      // Authorization
+      authorizeAction(profileDetails, userId, userId, {
+        getMethod: 'getProfileIdforAuth',
+        ownerField: 'id'
+      }, async (authError) => {
+        if (authError) {
+          return res.status(authError.code).json({ status: false, message: authError.message });
+        }
+
+        try {
+          // Handle profile image upload
+          if (req.file) {
+            if (existingUser.profile_image) {
+              const oldKey = getS3KeyFromUrl(existingUser.profile_image);
+              if (oldKey) await deleteFilesFromS3([oldKey], bucketName);
+            }
+
+            profile_image = await uploadToS3(req.file, 'profile_image');
+          }
+
+          // Prepare data for update
+          const updateData = {
+            phone_number,
+            city,
+            date_of_birth,
+            office_address,
+            home_address,
+          };
+
+          if (profile_image) {
+            updateData.profile_image = profile_image;
+          }
+
+          // Perform the update
+          profileDetails.updateProfileDetails(userId, updateData, (updateErr, result) => {
+            if (updateErr) {
+              console.error('MySQL update error:', updateErr);
+              return res.status(500).json({ status: false, message: 'Internal server error' });
+            }
+
+            // ✅ Check if anything actually updated in either table
+            const userAffected = result.userUpdate?.affectedRows || 0;
+            const detailsAffected = result.detailUpdate?.affectedRows || 0;
+
+            if (userAffected === 0 && detailsAffected === 0) {
+              return res.status(200).json({ status: true, message: 'No changes provided.' });
+            }
+
+            // Fetch updated profile to return
+            profileDetails.getProfileDetails(userId, (fetchErr, updatedProfile) => {
+              if (fetchErr) {
+                return res.status(500).json({
+                  status: false,
+                  message: 'Profile updated, but failed to retrieve updated data.'
+                });
+              }
+
+              return res.status(200).json({
+                status: true,
+                message: 'Profile updated successfully.',
+                updatedProfile
+              });
+            });
+          });
+        } catch (e) {
+          console.error('Unexpected error:', e);
+          return res.status(500).json({ status: false, message: 'Something went wrong' });
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return res.status(500).json({ status: false, message: 'Unexpected server error' });
+  }
+};
+
+
+
+
+exports.getProfileDetails = (req, res) => {
+  const user_id = req.user?.id;
+
+  if (!user_id || isNaN(user_id)) {
+    return res.status(400).json({ status: false, message: 'Invalid seller ID' });
+  }
+
+  profileDetails.getProfileDetails(user_id, (err, profile) => {
+    if (err) {
+      console.error('MySQL error:', err);
+      return res.status(500).json({ status: false, message: 'Internal server error' });
+    }
+
+    if (!profile) {
+      return res.status(404).json({ status: false, message: 'profile not found for this user' });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'profile fetched successfully.',
+      profile
+    });
+  });
+};
