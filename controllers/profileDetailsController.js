@@ -23,14 +23,14 @@ exports.updateProfile = async (req, res) => {
     let profile_image = null;
 
     // First check if user_details entry exists
-    profileDetails.getProfileDetails(userId, async (err, existingUser) => {
+    profileDetails.getProfileOtherDetails(userId, async (err, existingUser) => {
       if (err) {
         console.error('MySQL error:', err);
         return res.status(500).json({ status: false, message: 'Internal server error' });
       }
       // If no profile exists, create it
       if (!existingUser) {
-        return profileDetails.createDetails({ userId }, (createErr) => {
+        return profileDetails.createDetails(userId, (createErr) => {
           if (createErr) {
             return res.status(500).json({ status: false, message: 'Error creating profile details' });
           }

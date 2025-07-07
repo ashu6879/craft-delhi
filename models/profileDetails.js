@@ -26,6 +26,26 @@ exports.getProfileDetails = (userId, callback) => {
   });
 };
 
+exports.getProfileOtherDetails = (userId, callback) => {
+  const query = `
+    SELECT 
+    od.city,
+    od.home_address,
+    od.profile_image,
+    od.office_address
+    FROM user_details od
+    WHERE od.user_id = ?
+    LIMIT 1;
+  `;
+
+  db.query(query, [userId], (err, results) => {
+    if (err) return callback(err, null);
+    if (results.length === 0) return callback(null, null); // No store found
+
+    return callback(null, results[0]); // Return the store row
+  });
+};
+
 
 exports.createDetails = (user_id, callback) => {
   const query = `
