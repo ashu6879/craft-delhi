@@ -191,7 +191,7 @@ exports.updateBankDetails = async (req, res) => {
         console.error('MySQL error:', err);
         return res.status(500).json({ status: false, message: 'Internal server error' });
       }
-
+      console.log("existingDetails",existingDetails)
       // If no record, create an empty one and retry
       if (!existingDetails) {
         return profileDetails.createBankDetails(userId, (createErr) => {
