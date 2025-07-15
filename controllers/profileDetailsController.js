@@ -204,7 +204,7 @@ exports.updateBankDetails = async (req, res) => {
       }
 
       // Authorization (optional, same user ID check)
-      authorizeAction(bankDetails, userId, userId, {
+      authorizeAction(profileDetails, userId, userId, {
         getMethod: 'getBankDetailsForAuth',
         ownerField: 'user_id'
       }, async (authError) => {
