@@ -190,15 +190,16 @@ exports.getBankDetailsForAuth = (userId, callback) => {
 exports.getBankDetails = (userId, callback) => {
   const query = `
     SELECT 
-    UBD.bank_name,
-    UBD.branch_location,
-    UBD.account_holder_name,
-    UBD.account_number,    
-    UBD.ifsc_code,
+      UBD.bank_name,
+      UBD.branch_location,
+      UBD.account_holder_name,
+      UBD.account_number,    
+      UBD.ifsc_code
     FROM users_bank_details UBD
     WHERE UBD.user_id = ?
     LIMIT 1;
   `;
+
 
   db.query(query, [userId], (err, results) => {
     if (err) return callback(err, null);
