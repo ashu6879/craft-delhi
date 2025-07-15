@@ -140,6 +140,7 @@ exports.getProfileIdforAuth = (userId, callback) => {
 };
 
 exports.createBankDetails = (userId, callback) => {
+  console.log("userId",userId)
   const sql = `INSERT INTO users_bank_details (user_id) VALUES (?)`;
   db.query(sql, [userId], (err, result) => {
     if (err) return callback(err);
