@@ -13,5 +13,7 @@ router.put(
 );
 router.get('/getdetails',verifyTokenforactions, profileDetailsController.getProfileDetails);
 
+router.put('/editbankdetails',verifyTokenforactions,profileDetailsController.updateBankDetails);
+router.get('/getbankdetails',verifyTokenforactions, profileDetailsController.getBankDetails);
 
 module.exports = router;
