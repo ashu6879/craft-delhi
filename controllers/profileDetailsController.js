@@ -157,7 +157,7 @@ exports.getBankDetails = (req, res) => {
       return res.status(500).json({ status: false, message: 'Internal server error' });
     }
 
-    if (!profile) {
+    if (!bankDetails) {
       return res.status(404).json({ status: false, message: 'Bank Details not found for this user' });
     }
 
