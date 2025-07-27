@@ -21,7 +21,7 @@ exports.getAllProductsForAdmin = (callback) => {
     SELECT 
       p.id, 
       p.name AS product_name, 
-      p.approval_status, 
+      p.admin_approval, 
       p.main_image_url, 
       u.first_name, 
       u.last_name
