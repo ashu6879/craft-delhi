@@ -4,7 +4,9 @@ const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const productRoutes = require('./routes/productRoutes');
 const sellerStoreRoutes = require('./routes/sellerStoreRoutes');
-const profileDetailsController = require('./routes/profileDetails');
+const profileDetailsRoutes = require('./routes/profileDetails');
+const adminRoutes = require('./routes/adminPanelRoutes');
+const webhookHandler = require('./utils/webhook');
 
 
 const app = express();
@@ -15,6 +17,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/seller-store', sellerStoreRoutes);
-app.use('/api/profile', profileDetailsController);
+app.use('/api/profile', profileDetailsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/webhook', webhookHandler);
 
 module.exports = app;
