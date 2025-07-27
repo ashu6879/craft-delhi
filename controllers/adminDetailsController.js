@@ -2,7 +2,7 @@ const adminModel = require('../models/adminModel');
 require('dotenv').config();
 
 exports.getDashboardStats = (req, res) => {
-  const {role} = req.user.role;
+  const role = req.user.role;
   if(role == process.env.Admin_role_id){
     adminModel.getDashboardStats((err, stats) => {
       if (err) return res.status(500).json({ status: false, error: err });
