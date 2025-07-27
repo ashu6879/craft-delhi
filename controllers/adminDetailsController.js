@@ -9,6 +9,6 @@ exports.getDashboardStats = (req, res) => {
       res.json({ status: true, data: stats });
     });
   }else{
-    res.stats(401).json({ status: false, message: "Unauthorized Role" });
+    res.status(401).json({ status: false, message: "Unauthorized Role" });
   }
 };
