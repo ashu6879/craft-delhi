@@ -142,3 +142,120 @@ exports.getProfileDetails = (req, res) => {
     });
   });
 };
+
+
+exports.getBankDetails = (req, res) => {
+  const user_id = req.user?.id;
+
+  if (!user_id || isNaN(user_id)) {
+    return res.status(400).json({ status: false, message: 'Invalid seller ID' });
+  }
+
+  profileDetails.getBankDetails(user_id, (err, bankDetails) => {
+    if (err) {
+      console.error('MySQL error:', err);
+      return res.status(500).json({ status: false, message: 'Internal server error' });
+    }
+
+    if (!bankDetails) {
+      return res.status(404).json({ status: false, message: 'Bank Details not found for this user' });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'Bank Details fetched successfully.',
+      bankDetails
+    });
+  });
+};
+
+exports.updateBankDetails = async (req, res) => {
+  const userId = req.user?.id;
+
+  if (!userId || isNaN(userId)) {
+    return res.status(400).json({ status: false, message: 'Invalid User ID' });
+  }
+
+  try {
+    const {
+      bank_name,
+      branch_location,
+      account_holder_name,
+      account_number,
+      ifsc_code
+    } = req.body;
+
+    // Check if bank details already exist for the user
+    profileDetails.getBankDetails(userId, async (err, existingDetails) => {
+      if (err) {
+        console.error('MySQL error:', err);
+        return res.status(500).json({ status: false, message: 'Internal server error' });
+      }
+      // If no record, create an empty one and retry
+      if (!existingDetails) {
+        return profileDetails.createBankDetails(userId, (createErr) => {
+          if (createErr) {
+            return res.status(500).json({ status: false, message: 'Error creating bank details' });
+          }
+          // Retry after creation
+          return exports.updateBankDetails(req, res);
+        });
+      }
+
+      // Authorization (optional, same user ID check)
+      authorizeAction(profileDetails, userId, userId, {
+        getMethod: 'getBankDetailsForAuth',
+        ownerField: 'user_id'
+      }, async (authError) => {
+        if (authError) {
+          return res.status(authError.code).json({ status: false, message: authError.message });
+        }
+
+        try {
+          const updateData = {
+            bank_name,
+            branch_location,
+            account_holder_name,
+            account_number,
+            ifsc_code
+          };
+
+          // Perform the update
+          profileDetails.updateBankDetails(userId, updateData, (updateErr, result) => {
+            if (updateErr) {
+              console.error('Update error:', updateErr);
+              return res.status(500).json({ status: false, message: 'Failed to update bank details' });
+            }
+
+            if (result.affectedRows === 0) {
+              return res.status(200).json({ status: true, message: 'No changes were made.' });
+            }
+
+            // Return updated data
+            profileDetails.getBankDetails(userId, (fetchErr, updatedDetails) => {
+              if (fetchErr) {
+                return res.status(500).json({
+                  status: false,
+                  message: 'Updated, but failed to retrieve latest bank details.'
+                });
+              }
+
+              return res.status(200).json({
+                status: true,
+                message: 'Bank details updated successfully.',
+                updatedDetails
+              });
+            });
+          });
+
+        } catch (e) {
+          console.error('Unexpected error:', e);
+          return res.status(500).json({ status: false, message: 'Something went wrong' });
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return res.status(500).json({ status: false, message: 'Unexpected server error' });
+  }
+};

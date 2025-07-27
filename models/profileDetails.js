@@ -138,3 +138,73 @@ exports.getProfileIdforAuth = (userId, callback) => {
     return callback(null, results[0] || null);
   });
 };
+
+exports.createBankDetails = (userId, callback) => {
+  const sql = `INSERT INTO users_bank_details (user_id) VALUES (?)`;
+  db.query(sql, [userId], (err, result) => {
+    if (err) return callback(err);
+    callback(null, result);
+  });
+};
+
+// 3. Update bank details
+exports.updateBankDetails = (userId, updateData, callback) => {
+  const {
+    bank_name,
+    branch_location,
+    account_holder_name,
+    account_number,
+    ifsc_code
+  } = updateData;
+
+  const sql = `
+    UPDATE users_bank_details
+    SET bank_name = ?, branch_location = ?, account_holder_name = ?, account_number = ?, ifsc_code = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ?
+  `;
+
+  db.query(sql, [
+    bank_name,
+    branch_location,
+    account_holder_name,
+    account_number,
+    ifsc_code,
+    userId
+  ], (err, result) => {
+    if (err) return callback(err);
+    callback(null, result);
+  });
+};
+
+// 4. (Optional) For authorization logic
+exports.getBankDetailsForAuth = (userId, callback) => {
+  const sql = `SELECT user_id FROM users_bank_details WHERE user_id = ? LIMIT 1`;
+  db.query(sql, [userId], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results[0] || null);
+  });
+};
+
+
+
+exports.getBankDetails = (userId, callback) => {
+  const query = `
+    SELECT 
+      UBD.bank_name,
+      UBD.branch_location,
+      UBD.account_holder_name,
+      UBD.account_number,    
+      UBD.ifsc_code
+    FROM users_bank_details UBD
+    WHERE UBD.user_id = ?
+    LIMIT 1;
+  `;
+
+
+  db.query(query, [userId], (err, results) => {
+    if (err) return callback(err, null);
+    if (results.length === 0) return callback(null, null); // No store found
+
+    return callback(null, results[0]); // Return the store row
+  });
+};
