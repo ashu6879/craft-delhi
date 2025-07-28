@@ -3,14 +3,13 @@ require('dotenv').config();
 
 exports.getDashboardStats = (req, res) => {
   const role = req.user.role;
-  if(role == process.env.Admin_role_id){
+    if (role != process.env.Admin_role_id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
     adminModel.getDashboardStats((err, stats) => {
       if (err) return res.status(500).json({ status: false, error: err });
       res.json({ status: true, data: stats });
     });
-  }else{
-    res.status(401).json({ status: false, message: "Unauthorized Role" });
-  }
 };
 
 exports.adminProductsView = (req, res) => {
