@@ -51,3 +51,22 @@ exports.getBuyerStats = (callback) => {
     callback(null, results[0]);
   });
 };
+
+exports.getAllBuyersForAdmin = (callback) => {
+  const sql = `
+    SELECT 
+      u.id AS user_id, 
+      u.first_name, 
+      u.last_name,
+      u.email, 
+      u.phone_number, 
+      u.date_of_birth, 
+      ud.office_address,
+      ud.city,
+      ud.profile_image
+    FROM users u
+    JOIN user_details ud ON ud.user_id = u.id
+    ORDER BY u.created_at DESC
+  `;
+  db.query(sql, callback);
+};

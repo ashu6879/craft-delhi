@@ -7,5 +7,6 @@ router.get('/dashboard-stats', verifyTokenforactions,  adminController.getDashbo
 router.get('/products-view', verifyTokenforactions, adminController.adminProductsView);
 router.post('/update-product-approval', verifyTokenforactions, adminController.updateApprovalStatus);
 router.get('/buyer-stats', verifyTokenforactions,  adminController.getBuyerStats);
-
+router.get('/buyers-view', verifyTokenforactions, adminController.adminBuyersView);
+// router.post('/update-buyerbyadmin', verifyTokenforactions, adminController.updateBuyerbyAdmin);
 module.exports = router;
