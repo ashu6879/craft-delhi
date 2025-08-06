@@ -42,7 +42,7 @@ exports.getBuyerStats = (callback) => {
   const sql = `
     SELECT 
     (SELECT COUNT(*) FROM users WHERE role = 3) AS total_buyers,
-    (SELECT COUNT(*) FROM users WHERE role = 3 AND user_status = 1) AS active_buyers,
+    (SELECT COUNT(*) FROM users WHERE role = 3 AND user_status = 1 AND account_trashed = 0) AS active_buyers,
     (SELECT COUNT(*) FROM users WHERE role = 3 AND account_trashed = 1) AS trashed_accounts
   `;
 
