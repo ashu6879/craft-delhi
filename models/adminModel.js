@@ -37,3 +37,17 @@ exports.updateProductApprovalStatus = (productId, status, callback) => {
   const sql = `UPDATE products SET admin_approval = ? WHERE id = ?`;
   db.query(sql, [status, productId], callback);
 };
+
+exports.getBuyerStats = (callback) => {
+  const sql = `
+    SELECT 
+    (SELECT COUNT(*) FROM users WHERE role = 3) AS total_buyers,
+    (SELECT COUNT(*) FROM users WHERE role = 3 AND user_status = 1) AS active_buyers,
+    (SELECT COUNT(*) FROM users WHERE role = 3 AND account_trashed = 1) AS trashed_accounts
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return callback(err);
+    callback(null, results[0]);
+  });
+};

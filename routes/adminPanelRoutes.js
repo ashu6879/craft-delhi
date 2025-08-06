@@ -6,5 +6,6 @@ const { verifyTokenforactions } = require('../utils/authMiddleware');
 router.get('/dashboard-stats', verifyTokenforactions,  adminController.getDashboardStats);
 router.get('/products-view', verifyTokenforactions, adminController.adminProductsView);
 router.post('/update-product-approval', verifyTokenforactions, adminController.updateApprovalStatus);
+router.get('/buyer-stats', verifyTokenforactions,  adminController.getBuyerStats);
 
 module.exports = router;

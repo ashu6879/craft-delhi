@@ -51,3 +51,11 @@ exports.tempApproval = (email,status, callback) => {
     callback
   );
 };
+
+exports.makeAccountTrash = (id, callback) => {
+  db.query(
+    'UPDATE users SET account_trashed = 1 WHERE id = ?',
+    [id],
+    callback
+  );
+};

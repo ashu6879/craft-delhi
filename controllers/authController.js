@@ -159,6 +159,10 @@ exports.login = (req, res) => {
     if (!results.length) return res.status(404).json({ status: false, message: 'User not found' });
 
     const user = results[0];
+    
+    if (user.account_trashed === 1) {
+      return res.status(403).json({ status: false, message: 'Your account has been deleted.' });
+    }
     if (user.user_approval === 0) {
       return res.status(200).json({ status: false, message: 'Pending approval from admin. We will notify you once approved.' });
     }
@@ -222,3 +226,16 @@ exports.tempApproval = (req, res) => {
   });
 };
 
+
+exports.makeAccountTrash = (req, res) => {
+
+  const {id} = req.user;
+  if (!id) {
+    return res.status(400).json({ status: false, message: 'user_id is required' });
+  }
+
+  userModel.makeAccountTrash(id, (err, results) => {
+    if (err) return res.status(500).json({ status: false, error: err });
+    res.json({ status: true,  message: 'Account Trashed Successfully.' });
+  });
+};

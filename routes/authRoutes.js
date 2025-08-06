@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../controllers/authController');
+const { verifyTokenforactions } = require('../utils/authMiddleware');
 
 router.post('/register-details', auth.register);
 router.post('/login', auth.login);
@@ -17,5 +18,6 @@ router.post('/verify-otp', auth.verifyOtp);
 
 
 router.post('/temp-approval', auth.tempApproval);
+router.put('/makeaccount-trashed',verifyTokenforactions, auth.makeAccountTrash)
 
 module.exports = router;
