@@ -13,7 +13,7 @@ exports.getProfileDetails = (userId, callback) => {
     od.profile_image,
     od.office_address
     FROM users pd
-    LEFT JOIN user_details od ON od.user_id = pd.id
+    LEFT JOIN seller_details od ON od.user_id = pd.id
     WHERE pd.id = ?
     LIMIT 1;
   `;
@@ -33,7 +33,7 @@ exports.getProfileOtherDetails = (userId, callback) => {
     od.home_address,
     od.profile_image,
     od.office_address
-    FROM user_details od
+    FROM seller_details od
     WHERE od.user_id = ?
     LIMIT 1;
   `;
@@ -49,7 +49,7 @@ exports.getProfileOtherDetails = (userId, callback) => {
 
 exports.createDetails = (user_id, callback) => {
   const query = `
-    INSERT INTO user_details (user_id, created_at)
+    INSERT INTO seller_details (user_id, created_at)
     VALUES (?, NOW())
   `;
   db.query(query, [user_id], (err, result) => {
@@ -64,10 +64,10 @@ exports.updateProfileDetails = (userId, data, callback) => {
   const detailFields = [];
   const detailValues = [];
 
-  // Split fields between users and user_details
+  // Split fields between users and seller_details
   for (let key in data) {
     if (data[key] !== undefined) {
-      if (["phone_number", "date_of_birth"].includes(key)) {
+      if (["phone_number", "date_of_birth", "gender"].includes(key)) { // ✅ Added gender here
         userFields.push(`${key} = ?`);
         userValues.push(data[key]);
       } else if (["city", "home_address", "profile_image", "office_address"].includes(key)) {
@@ -102,7 +102,7 @@ exports.updateProfileDetails = (userId, data, callback) => {
     }
 
     const updateDetailFields = [...detailFields, `updated_at = NOW()`];
-    const detailSql = `UPDATE user_details SET ${updateDetailFields.join(', ')} WHERE user_id = ?`;
+    const detailSql = `UPDATE seller_details SET ${updateDetailFields.join(', ')} WHERE user_id = ?`;
     detailValues.push(userId);
 
     return new Promise((resolve, reject) => {

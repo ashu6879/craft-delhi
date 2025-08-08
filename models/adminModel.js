@@ -65,7 +65,7 @@ exports.getAllBuyersForAdmin = (callback) => {
       ud.city,
       ud.profile_image
     FROM users u
-    JOIN user_details ud ON ud.user_id = u.id
+    JOIN seller_details ud ON ud.user_id = u.id
     ORDER BY u.created_at DESC
   `;
   db.query(sql, callback);

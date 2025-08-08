@@ -18,6 +18,7 @@ exports.updateProfile = async (req, res) => {
       date_of_birth,
       office_address,
       home_address,
+      gender // ✅ Added gender
     } = req.body;
 
     let profile_image = null;
@@ -66,6 +67,7 @@ exports.updateProfile = async (req, res) => {
             date_of_birth,
             office_address,
             home_address,
+            gender // ✅ Added gender for users table
           };
 
           if (profile_image) {
@@ -114,8 +116,6 @@ exports.updateProfile = async (req, res) => {
     return res.status(500).json({ status: false, message: 'Unexpected server error' });
   }
 };
-
-
 
 
 exports.getProfileDetails = (req, res) => {
