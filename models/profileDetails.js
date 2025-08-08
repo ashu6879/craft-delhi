@@ -8,6 +8,7 @@ exports.getProfileDetails = (userId, callback) => {
     pd.first_name,
     pd.last_name,
     pd.date_of_birth,
+    pd.gender,
     od.city,
     od.home_address,
     od.profile_image,
