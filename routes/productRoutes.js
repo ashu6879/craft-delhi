@@ -23,7 +23,7 @@ router.post(
     { name: 'product_video', maxCount: 1 },
     { name: 'product_reel', maxCount: 1 }
   ]),
-  verifyToken, productController.addProduct
+  verifyTokenforactions, productController.addProduct
 );
 router.get('/get',verifyToken ,productController.getProducts);
 router.get('/getbyid/:product_id',verifyToken ,productController.getProductsbyID);

@@ -67,8 +67,10 @@ exports.addProduct = async (req, res) => {
     const {
       name, description, price, category_id,
       stock, dimension, package_weight,
-      weight_type, warranty_type, seller_id
+      weight_type, warranty_type,
     } = req.body;
+
+    const seller_id = req.user.id;
 
     if (!name || !price || !category_id || !seller_id) {
       return res.status(400).json({ status: false,error: 'Name, price, seller_id, and category_id are required.' });
