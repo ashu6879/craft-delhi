@@ -87,7 +87,33 @@ exports.adminBuyersView = (req, res) => {
   });
 };
 
-// exports.updateBuyerbyAdmin = (req, res) => {
+exports.getSellersStats = (req, res) => {
+  const role = req.user.role;
+    if (role != process.env.Admin_role_id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    adminModel.getSellerStats((err, stats) => {
+      if (err) return res.status(500).json({ status: false, error: err });
+      res.json({ status: true, data: stats });
+    });
+};
+
+exports.adminSellersView = (req, res) => {
+  const role = req.user.role;
+
+  if (role != process.env.Admin_role_id) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+
+  adminModel.getAllSellersForAdmin((err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Failed to fetch Buyers', error: err });
+    }
+    res.status(200).json({ success: true, data: result });
+  });
+};
+
+// exports.updateSellerbyAdmin = (req, res) => {
 //   const role = req.user.role;
 //   if (role != process.env.Admin_role_id) {
 //     return res.status(403).json({ success: false, message: 'Unauthorized' });
