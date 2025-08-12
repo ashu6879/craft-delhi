@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminDetailsController');
 const { verifyTokenforactions } = require('../utils/authMiddleware');
+const { upload } = require('../utils/s3Uploader');
 
 router.get('/dashboard-stats', verifyTokenforactions,  adminController.getDashboardStats);
 
@@ -14,5 +15,14 @@ router.get('/buyers-view', verifyTokenforactions, adminController.adminBuyersVie
 
 router.get('/seller-stats', verifyTokenforactions,  adminController.getSellersStats);
 router.get('/seller-view', verifyTokenforactions, adminController.adminSellersView);
-// router.put('/update-sellerbyadmin', verifyTokenforactions, adminController.updateSellerbyAdmin);
+router.put(
+  '/update-sellerbyadmin',
+  verifyTokenforactions,
+  upload.fields([
+    { name: 'profile_image', maxCount: 1 },
+    { name: 'store_image', maxCount: 1 }
+  ]),
+  adminController.updateSellerbyAdmin
+);
+router.post('/update-seller-approval', verifyTokenforactions, adminController.updateSellerStatus);
 module.exports = router;
