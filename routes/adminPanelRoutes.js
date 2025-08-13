@@ -3,11 +3,25 @@ const router = express.Router();
 const adminController = require('../controllers/adminDetailsController');
 const { verifyTokenforactions } = require('../utils/authMiddleware');
 const { upload } = require('../utils/s3Uploader');
+const productController = require('../controllers/productController');
 
 router.get('/dashboard-stats', verifyTokenforactions,  adminController.getDashboardStats);
 
 router.get('/products-view', verifyTokenforactions, adminController.adminProductsView);
 router.post('/update-product-approval', verifyTokenforactions, adminController.updateApprovalStatus);
+router.get('/products-stats', verifyTokenforactions,  adminController.getProductsStats);
+router.get('/totalproductsforadmin', verifyTokenforactions,  adminController.getTotalProducts);
+router.delete('/deleteproductbyadmin/:product_id', verifyTokenforactions,  productController.deleteProduct);
+router.put(
+  '/updateproductbyadmin/:product_id',
+  upload.fields([
+    { name: 'main_image', maxCount: 1 },
+    { name: 'gallery_images', maxCount: 4 },
+    { name: 'product_video', maxCount: 1 },
+    { name: 'product_reel', maxCount: 1 }
+  ]),verifyTokenforactions, 
+  productController.updateProduct
+);
 
 router.get('/buyer-stats', verifyTokenforactions,  adminController.getBuyerStats);
 router.get('/buyers-view', verifyTokenforactions, adminController.adminBuyersView);

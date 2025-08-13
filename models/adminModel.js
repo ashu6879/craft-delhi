@@ -32,6 +32,30 @@ exports.getAllProductsForAdmin = (callback) => {
   db.query(sql, callback);
 };
 
+exports.getProductsStats = (callback) => {
+  const sql = `
+    SELECT 
+    (SELECT COUNT(*) FROM products) AS total_products,
+    (SELECT COUNT(*) FROM products WHERE admin_approval = 0) AS pending_products
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return callback(err);
+    callback(null, results[0]);
+  });
+};
+
+exports.getTotalProducts = (callback) => {
+  const sql = `
+    SELECT * from products;
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
+  });
+};
+
 
 exports.updateProductApprovalStatus = (productId, status, callback) => {
   const sql = `UPDATE products SET admin_approval = ? WHERE id = ?`;
