@@ -25,4 +25,5 @@ router.put(
   adminController.updateSellerbyAdmin
 );
 router.post('/update-seller-approval', verifyTokenforactions, adminController.updateSellerStatus);
+router.delete('/delete-sellerbyadmin/:seller_id', verifyTokenforactions, adminController.deleteSellerAccount);
 module.exports = router;

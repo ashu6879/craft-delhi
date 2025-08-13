@@ -212,3 +212,29 @@ exports.updateSellerApprovalStatus = (seller_id, status, callback) => {
   const sql = `UPDATE users SET user_approval = ? WHERE id = ?`;
   db.query(sql, [status, seller_id], callback);
 };
+
+exports.deleteSellerData = (seller_id, callback) => {
+  const queries = [
+    `DELETE FROM users_bank_details WHERE user_id = ?`,
+    `DELETE FROM seller_stores WHERE seller_id = ?`,
+    `DELETE FROM seller_details WHERE user_id = ?`,
+    `DELETE FROM users WHERE id = ?`
+  ];
+
+  let index = 0;
+
+  const runNext = () => {
+    if (index >= queries.length) {
+      return callback(null); // All queries done
+    }
+
+    db.query(queries[index], [seller_id], (err) => {
+      if (err) return callback(err);
+      index++;
+      runNext();
+    });
+  };
+
+  runNext();
+};
+

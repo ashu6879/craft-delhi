@@ -190,3 +190,49 @@ exports.updateSellerStatus = (req, res) => {
     res.status(200).json({ success: true, message: 'Status updated successfully' });
   });
 };
+
+exports.deleteSellerAccount = (req, res) => {
+  const role = req.user.role;
+  if (role != process.env.Admin_role_id) {
+    return res.status(403).json({ success: false, message: "Unauthorized" });
+  }
+
+  const seller_id = parseInt(req.params.seller_id, 10);
+  if (!seller_id) {
+    return res.status(400).json({ success: false, message: "Seller ID is required" });
+  }
+
+  // Step 1: Get seller images
+  adminModel.getSellerImages(seller_id, async (err, sellerImages) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: "Failed to fetch seller images", error: err });
+    }
+
+    // Step 2: Delete images from S3
+    try {
+      const keysToDelete = [];
+      if (sellerImages?.profile_image) {
+        const key = getS3KeyFromUrl(sellerImages.profile_image);
+        if (key) keysToDelete.push(key);
+      }
+      if (sellerImages?.store_image) {
+        const key = getS3KeyFromUrl(sellerImages.store_image);
+        if (key) keysToDelete.push(key);
+      }
+
+      if (keysToDelete.length > 0) {
+        await deleteFilesFromS3(keysToDelete, process.env.AWS_BUCKET_NAME);
+      }
+    } catch (s3Err) {
+      return res.status(500).json({ success: false, message: "Failed to delete images from S3", error: s3Err });
+    }
+
+    // Step 3: Delete seller data from DB
+    adminModel.deleteSellerData(seller_id, (dbErr) => {
+      if (dbErr) {
+        return res.status(500).json({ success: false, message: "Failed to delete seller data", error: dbErr });
+      }
+      res.status(200).json({ success: true, message: "Seller account deleted successfully" });
+    });
+  });
+};
