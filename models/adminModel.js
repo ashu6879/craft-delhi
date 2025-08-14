@@ -118,6 +118,7 @@ exports.getAllSellersForAdmin = (callback) => {
         u.phone_number, 
         u.date_of_birth, 
         u.gender,
+        u.user_approval,
         u.user_status,
         sd.office_address,
         sd.home_address,
