@@ -13,7 +13,6 @@ exports.sendOtp = (req, res) => {
     return res.status(400).json({ status: false, message: 'Email is required' });
   }
 
-  // Validate purpose
   const allowedPurposes = ['verify', 'reset'];
   if (!allowedPurposes.includes(purpose)) {
     return res.status(400).json({ status: false, message: 'Invalid OTP purpose' });
@@ -21,7 +20,7 @@ exports.sendOtp = (req, res) => {
 
   const otp_type = purpose === 'reset' ? 'forgot_password' : 'email_verification';
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min expiry
 
   const transporter = nodemailer.createTransport({
     host: 'smtp.hostinger.com',
@@ -43,18 +42,27 @@ exports.sendOtp = (req, res) => {
   userModel.findByEmail(email, (err, results) => {
     if (err) return res.status(500).json({ status: false, error: err });
 
+    const userExists = Array.isArray(results) && results.length > 0;
+
     if (purpose === 'reset') {
-      if (!results.length) {
+      if (!userExists) {
         return res.status(404).json({ status: false, message: 'Email not found. Cannot reset password.' });
       }
+      saveAndSendOtp();
     } else {
-      if (!results.length) {
+      if (!userExists) {
+        // Create email record before saving OTP
         userModel.createEmailOnlyUser(email, (e) => {
           if (e) return res.status(500).json({ status: false, error: e });
+          saveAndSendOtp();
         });
+      } else {
+        saveAndSendOtp();
       }
     }
+  });
 
+  function saveAndSendOtp() {
     otpModel.saveOtp(email, otp, expiresAt, otp_type, (err2) => {
       if (err2) return res.status(500).json({ status: false, error: err2 });
 
@@ -63,8 +71,9 @@ exports.sendOtp = (req, res) => {
         res.json({ status: true, message: 'OTP sent to email' });
       });
     });
-  });
+  }
 };
+
 
 // Verify OTP
 exports.verifyOtp = (req, res) => {
@@ -106,23 +115,61 @@ exports.verifyOtp = (req, res) => {
 
 // Complete Registration After Email Verification
 exports.register = (req, res) => {
-  const { email, first_name, last_name, password, phone_number, dob, role } = req.body;
+  const { email, first_name, last_name, password, phone_number, dob, role, gender } = req.body;
 
-  if (!email || !first_name || !last_name || !password || !phone_number || !dob || !role) {
-    return res.status(400).json({ status: false, message: 'All fields are required' });
+  if (!email || !first_name || !last_name || !phone_number || !dob || !role || !gender) {
+    return res.status(400).json({ status: false, message: 'Required fields are missing' });
   }
 
-  const hashed = bcrypt.hashSync(password, 10);
+  const roleNum = Number(role);
+  const hashed = roleNum === 3 ? null : (password ? bcrypt.hashSync(password, 10) : null); // only hash if not buyer
 
   userModel.findByEmail(email, (err, results) => {
     if (err) return res.status(500).json({ status: false, error: err });
 
+    // 📌 Buyer Flow (role = 3)
+    if (roleNum === 3) {
+      if (!results || results.length === 0) {
+        // If new email, create record
+        return userModel.createEmailOnlyUser(email, (errCreate) => {
+          if (errCreate) return res.status(500).json({ status: false, error: errCreate });
+          userModel.updateUserDetailsWithoutVerification(
+            { email, first_name, last_name, password: null, phone_number, dob, role: roleNum, gender },
+            (errUpdate) => {
+              if (errUpdate) return res.status(500).json({ status: false, error: errUpdate });
+              return res.status(201).json({
+                status: true,
+                message: 'Buyer registered. Please verify your email to set password.',
+              });
+            }
+          );
+        });
+      }
+
+      // Email already exists
+      const existing = results[0];
+      if (existing.first_name) {
+        return res.status(400).json({ status: false, message: 'User already exists. Please login.' });
+      }
+
+      return userModel.updateUserDetailsWithoutVerification(
+        { email, first_name, last_name, password: null, phone_number, dob, role: roleNum, gender },
+        (err2) => {
+          if (err2) return res.status(500).json({ status: false, error: err2 });
+          return res.status(201).json({
+            status: true,
+            message: 'Buyer registered. Please verify your email to set password.',
+          });
+        }
+      );
+    }
+
+    // 📌 Seller Flow (existing logic)
     if (!results.length) {
       return res.status(404).json({ status: false, message: 'Email not found. Please verify email first.' });
     }
 
     const user = results[0];
-
     if (user.is_email_verified && user.first_name) {
       return res.status(400).json({ status: false, message: 'User already exists. Please login.' });
     }
@@ -131,20 +178,47 @@ exports.register = (req, res) => {
       return res.status(400).json({ status: false, message: 'Email not verified' });
     }
 
-    userModel.updateUserDetails({
-      email,
-      first_name,
-      last_name,
-      password: hashed,
-      phone_number,
-      dob,
-      role
-    }, (err2) => {
-      if (err2) return res.status(500).json({ status: false, error: err2 });
-      res.status(201).json({ status: true, message: 'User registered. Awaiting approval.' });
+    userModel.updateUserDetails(
+      { email, first_name, last_name, password: hashed, phone_number, dob, role: roleNum, gender },
+      (err2) => {
+        if (err2) return res.status(500).json({ status: false, error: err2 });
+        return res.status(201).json({ status: true, message: 'Seller registered. Awaiting approval.' });
+      }
+    );
+  });
+};
+
+exports.setPassword = (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ status: false, message: 'Email and password are required' });
+  }
+
+  userModel.findByEmail(email, (err, results) => {
+    if (err) return res.status(500).json({ status: false, error: err });
+
+    if (!results || results.length === 0) {
+      return res.status(404).json({ status: false, message: 'User not found' });
+    }
+
+    const user = results[0];
+
+    // 🔍 Check if email is verified
+    if (!user.is_email_verified) {
+      return res.status(400).json({ status: false, message: 'Email is not verified' });
+    }
+
+    const hashed = bcrypt.hashSync(password, 10);
+
+    userModel.updatePasswordByEmail(email, hashed, (errUpdate) => {
+      if (errUpdate) return res.status(500).json({ status: false, error: errUpdate });
+      res.json({ status: true, message: 'Password set successfully. You can now log in.' });
     });
   });
 };
+
+
 
 // Login
 exports.login = (req, res) => {
@@ -162,6 +236,9 @@ exports.login = (req, res) => {
     
     if (user.account_trashed === 1) {
       return res.status(403).json({ status: false, message: 'Your account has been deleted.' });
+    }
+    if (user.is_email_verified === 0) {
+      return res.status(403).json({ status: false, message: 'Email is not verified.' });
     }
     if (user.user_approval === 0) {
       return res.status(200).json({ status: false, message: 'Pending approval from admin. We will notify you once approved.' });

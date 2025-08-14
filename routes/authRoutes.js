@@ -9,6 +9,7 @@ router.post('/login', auth.login);
 //forget password
 router.post('/forgot-password', auth.sendOtp);         // Reuse sendOtp
 router.post('/reset-password', auth.resetPassword);    // Handle OTP + new password
+router.post('/save-passwordforbuyer', auth.setPassword);    // Handle OTP + new password
 
 
 
