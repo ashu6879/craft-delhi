@@ -111,33 +111,37 @@ exports.getSellerStats = (callback) => {
 exports.getAllSellersForAdmin = (callback) => {
   const sql = `
     SELECT 
-      u.id AS user_id, 
-      u.first_name, 
-      u.last_name,
-      u.email, 
-      u.phone_number, 
-      u.date_of_birth, 
-      u.gender,
-      sd.office_address,
-      sd.home_address,
-      sd.profile_image,
-      ss.store_name,
-      ss.seller_id AS store_id,
-      ss.store_link,
-      ss.description,
-      ss.store_created_date,
-      ss.business_number,
-      ss.store_image,
-      bd.bank_name,
-      bd.branch_location,
-      bd.account_holder_name,
-      bd.account_number,
-      bd.ifsc_code 
+        u.id AS user_id, 
+        u.first_name, 
+        u.last_name,
+        u.email, 
+        u.phone_number, 
+        u.date_of_birth, 
+        u.gender,
+        u.user_status,
+        sd.office_address,
+        sd.home_address,
+        sd.profile_image,
+        ss.store_name,
+        ss.seller_id AS store_id,
+        ss.store_link,
+        ss.description,
+        ss.store_created_date,
+        ss.business_number,
+        ss.store_image,
+        bd.bank_name,
+        bd.branch_location,
+        bd.account_holder_name,
+        bd.account_number,
+        bd.ifsc_code 
     FROM users u
-    JOIN seller_details sd ON sd.user_id = u.id
-    JOIN seller_stores ss ON ss.seller_id = u.id
-    JOIN users_bank_details bd ON bd.user_id = u.id
-    ORDER BY u.created_at DESC
+    LEFT JOIN seller_details sd 
+        ON sd.user_id = u.id
+    LEFT JOIN seller_stores ss 
+        ON ss.seller_id = u.id
+    LEFT JOIN users_bank_details bd 
+        ON bd.user_id = u.id
+    ORDER BY u.created_at DESC;
   `;
   db.query(sql, callback);
 };
