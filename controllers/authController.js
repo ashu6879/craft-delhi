@@ -117,9 +117,10 @@ exports.verifyOtp = (req, res) => {
 exports.register = (req, res) => {
   const { email, first_name, last_name, password, phone_number, dob, role, gender } = req.body;
 
-  if (!email || !first_name || !last_name || !phone_number || !dob || !role || !gender) {
+  if (!email || !first_name || !last_name || !phone_number || !dob || role === undefined || role === null || gender === undefined || gender === null) {
     return res.status(400).json({ status: false, message: 'Required fields are missing' });
   }
+
 
   const roleNum = Number(role);
   const hashed = roleNum === 3 ? null : (password ? bcrypt.hashSync(password, 10) : null); // only hash if not buyer
