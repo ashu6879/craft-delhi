@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
 const { upload } = require('../utils/s3Uploader');
-const { verifyToken } = require('../utils/authMiddleware');
 const { verifyTokenforactions } = require('../utils/authMiddleware');
 const { S3Client, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
 
@@ -25,8 +24,8 @@ router.post(
   ]),
   verifyTokenforactions, productController.addProduct
 );
-router.get('/get',verifyToken ,productController.getProducts);
-router.get('/getbyid/:product_id',verifyToken ,productController.getProductsbyID);
+router.get('/get',verifyTokenforactions ,productController.getProducts);
+router.get('/getbyid/:product_id',verifyTokenforactions ,productController.getProductsbyID);
 router.delete('/delete/:product_id',verifyTokenforactions  ,productController.deleteProduct);
 router.put(
   '/update/:product_id',

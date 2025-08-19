@@ -10,21 +10,40 @@ exports.insert = (data) => {
   });
 };
 
-exports.getallProducts = (callback) => {
-  const sql = 'SELECT * FROM products'; // Adjust table name if needed
-  db.query(sql, (err, results) => {
+exports.getallProducts = (userId, callback) => {
+  const sql = `
+    SELECT 
+      p.*, 
+      CASE WHEN fp.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_favourite
+    FROM products p
+    LEFT JOIN favourites_product fp 
+      ON p.id = fp.product_id AND fp.user_id = ?
+  `;
+
+  db.query(sql, [userId], (err, results) => {
     if (err) return callback(err, null);
     return callback(null, results);
   });
 };
 
-exports.getProductbyID = (id, callback) => {
-  const sql = 'SELECT * FROM products WHERE id = ?';
-  db.query(sql, [id], (err, results) => {
+
+exports.getProductbyID = (productId, userId, callback) => {
+  const sql = `
+    SELECT 
+      p.*, 
+      CASE WHEN fp.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_favourite
+    FROM products p
+    LEFT JOIN favourites_product fp 
+      ON p.id = fp.product_id AND fp.user_id = ?
+    WHERE p.id = ?
+  `;
+
+  db.query(sql, [userId, productId], (err, results) => {
     if (err) return callback(err, null);
-    return callback(null, results[0]); // assuming you want a single product
+    return callback(null, results[0]); // single product with is_favourite flag
   });
 };
+
 
 exports.deleteProductID = (id, callback) => {
   const sql = 'DELETE FROM products WHERE id = ?';

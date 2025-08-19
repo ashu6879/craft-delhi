@@ -6,6 +6,7 @@ const productRoutes = require('./routes/productRoutes');
 const sellerStoreRoutes = require('./routes/sellerStoreRoutes');
 const profileDetailsRoutes = require('./routes/profileDetails');
 const adminRoutes = require('./routes/adminPanelRoutes');
+const favouriteRoutes = require('./routes/favouriteRoutes');
 const webhookHandler = require('./utils/webhook');
 
 
@@ -20,5 +21,6 @@ app.use('/api/seller-store', sellerStoreRoutes);
 app.use('/api/profile', profileDetailsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhook', webhookHandler);
+app.use('/api/favourites', favouriteRoutes);
 
 module.exports = app;

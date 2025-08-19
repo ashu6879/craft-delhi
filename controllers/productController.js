@@ -152,7 +152,8 @@ exports.addProduct = async (req, res) => {
 };
 
 exports.getProducts = (req, res) => {
-  productModel.getallProducts((err, products) => {
+  const { id } = req.user;
+  productModel.getallProducts(id,(err, products) => {
     if (err) {
       console.error('DB Error:', err);
       return res.status(500).json({status: false, message: 'Server error' });
@@ -168,13 +169,14 @@ exports.getProducts = (req, res) => {
 };
 
 exports.getProductsbyID = (req, res) => {
+  const { id } = req.user;  
   const { product_id } = req.params;
 
   if (!product_id) {
     return res.status(400).json({ status: false, message: 'Product ID is required' });
   }
 
-  productModel.getProductbyID(product_id, (err, product) => {
+  productModel.getProductbyID(product_id, id, (err, product) => {
     if (err) {
       console.error('DB Error:', err);
       return res.status(500).json({ status: false, message: 'Server error' });
