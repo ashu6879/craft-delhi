@@ -1,11 +1,10 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const sendEmail = require('../utils/mailHelper'); // adjust path as per your project
 
 const otpModel = require('../models/otpModel');
 const userModel = require('../models/userModel');
 
-// Send OTP to email
 exports.sendOtp = (req, res) => {
   const { email, purpose = 'verify' } = req.body;
 
@@ -21,23 +20,6 @@ exports.sendOtp = (req, res) => {
   const otp_type = purpose === 'reset' ? 'forgot_password' : 'email_verification';
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min expiry
-
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.hostinger.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Your Craft Delhi OTP',
-    text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
-  };
 
   userModel.findByEmail(email, (err, results) => {
     if (err) return res.status(500).json({ status: false, error: err });
@@ -63,16 +45,26 @@ exports.sendOtp = (req, res) => {
   });
 
   function saveAndSendOtp() {
-    otpModel.saveOtp(email, otp, expiresAt, otp_type, (err2) => {
+    otpModel.saveOtp(email, otp, expiresAt, otp_type, async (err2) => {
       if (err2) return res.status(500).json({ status: false, error: err2 });
 
-      transporter.sendMail(mailOptions, (error) => {
-        if (error) return res.status(500).json({ status: false, error });
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Your Craft Delhi OTP',
+          text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
+          // You can add HTML if you want
+          html: `<p>Your OTP is <b>${otp}</b>. It will expire in 10 minutes.</p>`
+        });
+
         res.json({ status: true, message: 'OTP sent to email' });
-      });
+      } catch (error) {
+        res.status(500).json({ status: false, error });
+      }
     });
   }
 };
+
 
 
 // Verify OTP
@@ -283,8 +275,31 @@ exports.resetPassword = (req, res) => {
       userModel.updatePasswordByEmail(email, hashedPassword, (err3) => {
         if (err3) return res.status(500).json({ status: false, error: err3 });
 
-        otpModel.clearOtpVerification(email, 'forgot_password', () => {
-          res.json({ status: true, message: 'Password reset successful' });
+        otpModel.clearOtpVerification(email, 'forgot_password', async () => {
+          try {
+            // 🔔 Send success email
+            await sendEmail({
+              to: email,
+              subject: 'Your password has been reset successfully',
+              text: `Hello,\n\nYour password has been reset successfully. If you did not perform this action, please contact support immediately.`,
+              html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                  <h2>Password Reset Successful</h2>
+                  <p>Hello,</p>
+                  <p>Your password has been <strong>reset successfully</strong>.</p>
+                  <p>If you did not perform this action, please contact our support team immediately.</p>
+                  <br/>
+                  <p>Best regards,<br/>Craft Delhi Team</p>
+                </div>
+              `
+            });
+
+            res.json({ status: true, message: 'Password reset successful' });
+          } catch (mailErr) {
+            console.error('Failed to send password reset success email:', mailErr);
+            // Still respond success for password reset
+            res.json({ status: true, message: 'Password reset successful, but email could not be sent.' });
+          }
         });
       });
     });
