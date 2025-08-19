@@ -1,5 +1,21 @@
 const Favourite = require('../models/favouriteModel');
 
+// get all favourite
+exports.getFavourite = (req, res) => {
+  const { id } = req.user; // from verifyTokenforactions middleware
+
+  if (!id) {
+    return res.status(400).json({ status: false, message: 'user_id is required' });
+  }
+
+  Favourite.getFavourite(id, (err, result) => {
+    if (err) {
+      return res.status(500).json({ status: false, message: 'error fetching all favourites', error: err });
+    }
+    return res.status(201).json({ status: true, message: 'Favourite products fetched successfully', data:result });
+  });
+};
+
 // Add a favourite
 exports.addFavourite = (req, res) => {
   const { id } = req.user; // from verifyTokenforactions middleware
