@@ -7,7 +7,7 @@ const sellerStoreRoutes = require('./routes/sellerStoreRoutes');
 const profileDetailsRoutes = require('./routes/profileDetails');
 const adminRoutes = require('./routes/adminPanelRoutes');
 const favouriteRoutes = require('./routes/favouriteRoutes');
-const userAddress = require('./routes/userAddresses');
+const userAddress = require('./routes/userAddressesRoutes');
 const webhookHandler = require('./utils/webhook');
 
 
