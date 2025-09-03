@@ -7,6 +7,7 @@ const sellerStoreRoutes = require('./routes/sellerStoreRoutes');
 const profileDetailsRoutes = require('./routes/profileDetails');
 const adminRoutes = require('./routes/adminPanelRoutes');
 const favouriteRoutes = require('./routes/favouriteRoutes');
+const userAddress = require('./routes/userAddresses');
 const webhookHandler = require('./utils/webhook');
 
 
@@ -22,5 +23,6 @@ app.use('/api/profile', profileDetailsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhook', webhookHandler);
 app.use('/api/favourites', favouriteRoutes);
+app.use('/api/useraddress', userAddress);
 
 module.exports = app;
