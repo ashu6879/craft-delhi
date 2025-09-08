@@ -24,8 +24,8 @@ router.post(
   ]),
   verifyTokenforactions, productController.addProduct
 );
-router.get('/get',verifyTokenforactions ,productController.getProducts);
-router.get('/getbyid/:product_id',verifyTokenforactions ,productController.getProductsbyID);
+router.get('/get' ,productController.getProducts);
+router.get('/getbyid/:product_id' ,productController.getProductsbyID);
 router.delete('/delete/:product_id',verifyTokenforactions  ,productController.deleteProduct);
 router.put(
   '/update/:product_id',
