@@ -152,24 +152,25 @@ exports.addProduct = async (req, res) => {
 };
 
 exports.getProducts = (req, res) => {
-  const { id } = req.user;
-  productModel.getallProducts(id,(err, products) => {
+  // If token exists, get id, else set to null
+  const id = req.user ? req.user.id : null;
+
+  productModel.getallProducts(id, (err, products) => {
     if (err) {
       console.error('DB Error:', err);
-      return res.status(500).json({status: false, message: 'Server error' });
+      return res.status(500).json({ status: false, message: 'Server error' });
     }
 
-    // Return all products
     return res.status(200).json({
       status: true,
-      message: 'products fetched successfully',
+      message: 'Products fetched successfully',
       data: products
     });
   });
 };
 
 exports.getProductsbyID = (req, res) => {
-  const { id } = req.user;  
+  const id = req.user ? req.user.id : null;  
   const { product_id } = req.params;
 
   if (!product_id) {
