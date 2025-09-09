@@ -16,7 +16,7 @@ exports.deleteProduct = (req, res) => {
 
   // ✅ If admin, skip ownership check and still delete media
   if (roleId === parseInt(process.env.Admin_role_id)) {
-    return productModel.getProductbyID(product_id, async (err, product) => {
+    return productModel.getProductbyID(parseInt(product_id), userId, async (err, product) => {
       if (err || !product) {
         return res.status(404).json({ status: false, message: 'Product not found' });
       }
@@ -25,7 +25,7 @@ exports.deleteProduct = (req, res) => {
   }
 
   // Seller: must own the product
-  authorizeAction(productModel, product_id, userId, {
+  authorizeAction(productModel, parseInt(product_id), userId, {
     getMethod: 'getProductbyID',
     ownerField: 'seller_id'
   }, async (authError, product) => {
