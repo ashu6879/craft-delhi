@@ -195,62 +195,6 @@ exports.getProductsbyID = (req, res) => {
   });
 };
 
-
-// exports.deleteProduct = (req, res) => {
-//   const { product_id } = req.params;
-//   const userId = req.user?.id;
-
-//   if (!product_id) {
-//     return res.status(400).json({ status: false, message: 'Product ID is required' });
-//   }
-
-//   authorizeAction(productModel, product_id, userId, {
-//     getMethod: 'getProductbyID',
-//     ownerField: 'seller_id'
-//   }, async (authError, product) => {
-//     if (authError) {
-//       return res.status(authError.code).json({ status: false, message: authError.message });
-//     }
-//     const mediaUrls = [];
-
-//     if (product.main_image_url) mediaUrls.push(product.main_image_url);
-//     if (product.video_url) mediaUrls.push(product.video_url);
-//     if (product.reel_url) mediaUrls.push(product.reel_url);
-
-//     if (product.gallery_images) {
-//       try {
-//         const gallery = JSON.parse(product.gallery_images);
-//         if (Array.isArray(gallery)) mediaUrls.push(...gallery);
-//       } catch (err) {
-//         console.error('Failed to parse gallery_images:', err);
-//       }
-//     }
-
-//     const deleteFromDB = () => {
-//       productModel.deleteProductID(product_id, (err, result) => {
-//         if (err) {
-//           return res.status(500).json({ status: false, message: 'Error deleting product', error: err });
-//         }
-
-//         if (result.affectedRows > 0) {
-//           return res.status(200).json({ status: true, message: 'Product and media deleted successfully' });
-//         } else {
-//           return res.status(400).json({ status: false, message: 'Product deletion failed' });
-//         }
-//       });
-//     };
-
-//     try {
-//       const result = await deleteFilesFromS3(mediaUrls, bucketName);
-//       // console.log('S3 deletion result:', result);
-//       deleteFromDB(); // proceed after deletion
-//     } catch (err) {
-//       console.error('S3 deletion failed, proceeding with DB delete anyway');
-//       deleteFromDB(); // still proceed
-//     }
-//   });
-// };
-
 exports.updateProduct = async (req, res) => {
   const { product_id } = req.params;
   const userId = req.user?.id;
