@@ -27,15 +27,28 @@ exports.updateUserDetails = (userData, callback) => {
 
 exports.updateUserDetailsWithoutVerification = (userData, callback) => {
   const { email, first_name, last_name, password, phone_number, dob, role, gender } = userData;
+
+  // Dynamically set user_approval based on role
+  const userApproval = Number(role) === 3 ? 1 : 0;
+
   const sql = `
     UPDATE users SET 
-      first_name = ?, last_name = ?, 
-      password = ?, phone_number = ?, date_of_birth = ?, 
-      user_status = true, user_approval = 0, role = ?, is_email_verified = 0, gender = ?
+      first_name = ?, 
+      last_name = ?, 
+      password = ?, 
+      phone_number = ?, 
+      date_of_birth = ?, 
+      user_status = true, 
+      user_approval = ?, 
+      role = ?, 
+      is_email_verified = 0, 
+      gender = ?
     WHERE email = ?
   `;
-  db.query(sql, [first_name, last_name, password, phone_number, dob, role, gender, email], callback);
+
+  db.query(sql, [first_name, last_name, password, phone_number, dob, userApproval, role, gender, email], callback);
 };
+
 
 
 exports.markEmailVerified = (email, callback) => {
