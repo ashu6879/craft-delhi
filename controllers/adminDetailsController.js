@@ -36,18 +36,6 @@ exports.getTotalProducts = (req, res) => {
     });
 };
 
-exports.deleteProductbyAdmin = (req, res) => {
-  const role = req.user.role;
-    if (role != process.env.Admin_role_id) {
-      return res.status(403).json({ success: false, message: 'Unauthorized' });
-    }
-    const product_id = req.params.product_id
-    adminModel.getTotalProducts((err, stats) => {
-      if (err) return res.status(500).json({ status: false, error: err });
-      res.json({ status: true, message: "Product fetched succesfully", data: stats });
-    });
-};
-
 exports.adminProductsView = (req, res) => {
   const role = req.user.role;
 
