@@ -2,16 +2,16 @@ const db = require('../config/db');
 
 // ✅ Create a new order
 exports.createOrder = (userId, data, callback) => {
-  const { total_amount, order_status, payment_status, payment_type, shipping_address_id } = data;
+  const { order_uid,total_amount, order_status, payment_status, payment_type, shipping_address_id } = data;
 
   const query = `
-    INSERT INTO order_details (user_id, total_amount, order_status, payment_status, payment_type, shipping_address_id)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO order_details (order_uid, user_id, total_amount, order_status, payment_status, payment_type, shipping_address_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     query,
-    [userId, total_amount, order_status, payment_status, payment_type, shipping_address_id],
+    [order_uid, userId, total_amount, order_status, payment_status, payment_type, shipping_address_id],
     (err, result) => {
       if (err) return callback(err, null);
       callback(null, result);
@@ -49,6 +49,7 @@ exports.getOrderById = (orderId, userId, callback) => {
   const query = `
     SELECT 
       od.id AS order_id,
+      od.order_uid,
       od.user_id,
       od.total_amount,
       od.order_status,

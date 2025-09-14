@@ -12,11 +12,11 @@ exports.createOrder = (req, res) => {
   if (!total_amount || !payment_type || !shipping_address_id || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ status: false, message: 'Missing required fields' });
   }
-
+  const order_uid = `ORD${Date.now()}`; // Example: ORD1694712345678
   // Step 1: Insert order
   Order.createOrder(
     userId,
-    { total_amount, order_status, payment_status, payment_type, shipping_address_id },
+    { order_uid,total_amount, order_status, payment_status, payment_type, shipping_address_id },
     (err, orderResult) => {
       if (err) {
         console.error('Order Insert Error:', err);
