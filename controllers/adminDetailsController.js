@@ -339,3 +339,33 @@ exports.adminOrderStatusUpdate = (req, res) => {
     res.status(200).json({ success: true, message: 'Order status updated successfully' });
   });
 };
+
+exports.deleteOrderbyAdmin = (req, res) => {
+  const role = req.user.role;
+  if (role != process.env.Admin_role_id) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+
+  const order_id = req.params.order_id;
+
+  if (!order_id) {
+    return res.status(400).json({ success: false, message: 'Order ID is required' });
+  }
+
+  adminModel.deleteOrderbyAdmin(order_id, (err, result) => {
+    if (err) {
+      return res.status(500).json({ status: false, message: 'Failed to delete order', error: err });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: false, message: 'Order not found' });
+    }
+
+    res.json({
+      status: true,
+      message: "Order and related items deleted successfully",
+      data: result
+    });
+  });
+};
+

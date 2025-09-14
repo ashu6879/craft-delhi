@@ -390,3 +390,15 @@ exports.updateOrderStatus = (order_id, updates, callback) => {
 
   db.query(sql, values, callback);
 }
+
+exports.deleteOrderbyAdmin = (order_id, callback) => {
+  // Step 1: Delete order items first
+  const deleteItemsSql = `DELETE FROM order_items WHERE order_id = ?`;
+  db.query(deleteItemsSql, [order_id], (err) => {
+    if (err) return callback(err);
+
+    // Step 2: Delete order
+    const deleteOrderSql = `DELETE FROM order_details WHERE id = ?`;
+    db.query(deleteOrderSql, [order_id], callback);
+  });
+};
