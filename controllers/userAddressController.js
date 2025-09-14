@@ -24,16 +24,17 @@ exports.createUserAddress = (req, res) => {
     const insertedId = insertResult.insertId;
 
     // Step 2: Fetch inserted address
-    UserAddress.getAddressByID(insertedId, (err, newAddress) => {
+    UserAddress.getAddressByID(insertedId,userId, (err, newAddress) => {
       if (err) {
         console.error('Fetch Error:', err);
         return res.status(500).json({ status: false, message: 'Server error' });
       }
+      console.log(newAddress)
 
       return res.status(201).json({
         status: true,
         message: 'User address created successfully',
-        data: newAddress[0]
+        data: newAddress
       });
     });
   });
