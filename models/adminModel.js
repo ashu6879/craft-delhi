@@ -328,3 +328,24 @@ exports.getAllOrdersForAdmin = (callback) => {
   });
 };
 
+exports.updateOrderStatus = (order_id, updates, callback) => {
+  const fields = [];
+  const values = [];
+
+  if (updates.order_status !== undefined) {
+    fields.push('order_status = ?');
+    values.push(updates.order_status);
+  }
+
+  if (updates.payment_status !== undefined) {
+    fields.push('payment_status = ?');
+    values.push(updates.payment_status);
+  }
+
+  // Add WHERE clause
+  values.push(order_id);
+
+  const sql = `UPDATE order_details SET ${fields.join(', ')} WHERE id = ?`;
+
+  db.query(sql, values, callback);
+}

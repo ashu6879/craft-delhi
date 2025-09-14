@@ -43,4 +43,5 @@ router.delete('/delete-sellerbyadmin/:seller_id', verifyTokenforactions, adminCo
 
 router.get('/order-stats', verifyTokenforactions,  adminController.getOrderStats);
 router.get('/orders-view', verifyTokenforactions, adminController.adminOrdersView);
+router.put('/orderstatus-update', verifyTokenforactions, adminController.adminOrderStatusUpdate);
 module.exports = router;

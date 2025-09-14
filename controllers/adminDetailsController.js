@@ -296,3 +296,46 @@ exports.adminOrdersView = (req, res) => {
     res.status(200).json({ success: true, data: result });
   });
 };
+
+exports.adminOrderStatusUpdate = (req, res) => {
+  const role = req.user.role;
+  if (role != process.env.Admin_role_id) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+
+  const { order_status, order_id, payment_status } = req.body;
+
+  if (!order_id) {
+    return res.status(400).json({ success: false, message: 'Order ID is required' });
+  }
+
+  // Validate order_status (if provided)
+  if (order_status !== undefined && ![0, 1, 2, 3, 4].includes(order_status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid order_status. Use 0=Pending, 1=Accepted, 2=Out for Delivery, 3=Delivered, 4=Cancelled'
+    });
+  }
+
+  // Validate payment_status (if provided)
+  if (payment_status !== undefined && ![0, 1, 2].includes(payment_status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid payment_status. Use 0=Pending, 1=Paid, 2=Refund'
+    });
+  }
+
+  // Ensure at least one field is being updated
+  if (order_status === undefined && payment_status === undefined) {
+    return res.status(400).json({ success: false, message: 'No status field provided to update' });
+  }
+
+  // Update
+  adminModel.updateOrderStatus(order_id, { order_status, payment_status }, (err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Failed to update order status', error: err });
+    }
+
+    res.status(200).json({ success: true, message: 'Order status updated successfully' });
+  });
+};
