@@ -3,7 +3,7 @@ const db = require('../config/db'); // adjust path to your MySQL connection
 exports.getDashboardStats = (callback) => {
   const sql = `
     SELECT 
-    (SELECT COUNT(*) FROM users) AS total_users,
+    (SELECT COUNT(*) FROM users WHERE role = 2 AND user_status = 1) AS total_users,
     (SELECT COUNT(*) FROM users WHERE role = 2 AND user_status = 1) AS active_sellers,
     (SELECT COUNT(*) FROM users WHERE role = 3 AND user_status = 1) AS active_buyers,
     (SELECT COUNT(*) FROM products WHERE admin_approval = 0) AS pending_products;
@@ -89,6 +89,7 @@ exports.getAllBuyersForAdmin = (callback) => {
       ud.profile_image
     FROM users u
     JOIN seller_details ud ON ud.user_id = u.id
+    where u.role = 2
     ORDER BY u.created_at DESC
   `;
   db.query(sql, callback);
@@ -142,6 +143,7 @@ exports.getAllSellersForAdmin = (callback) => {
         ON ss.seller_id = u.id
     LEFT JOIN users_bank_details bd 
         ON bd.user_id = u.id
+    where u.role = 2    
     ORDER BY u.created_at DESC;
   `;
   db.query(sql, callback);
