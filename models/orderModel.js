@@ -74,6 +74,7 @@ exports.getOrderById = (orderId, userId, callback) => {
 
     const order = {
       order_id: results[0].order_id,
+      order_uid: results[0].order_uid,
       user_id: results[0].user_id,
       total_amount: results[0].total_amount,
       order_status: results[0].order_status,
