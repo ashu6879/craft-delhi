@@ -14,22 +14,27 @@ exports.createAddress = (userId, data, callback) => {
 };
 
 // ✅ Get all addresses
-exports.getAllAddresses = (callback) => {
-  const sql = 'SELECT * FROM user_addresses';
-  db.query(sql, (err, results) => {
+exports.getAllAddresses = (user_id, callback) => {
+  const sql = 'SELECT * FROM user_addresses WHERE user_id = ?';
+  db.query(sql, [user_id], (err, results) => {
     if (err) return callback(err, null);
     return callback(null, results);
   });
 };
 
+
 // ✅ Get address by ID
-exports.getAddressByID = (id, callback) => {
-  const sql = 'SELECT * FROM user_addresses WHERE id = ?';
-  db.query(sql, [id], (err, results) => {
-    if (err) return callback(err, null);
-    return callback(null, results[0]);
+exports.getAddressByID = (id, user_id, callback) => {
+  const sql = 'SELECT * FROM user_addresses WHERE id = ? AND user_id = ?';
+  db.query(sql, [id, user_id], (err, results) => {
+    if (err) {
+      console.error('Error fetching address by ID:', err);
+      return callback(err, null);
+    }
+    return callback(null, results[0] || null); // return null if no record found
   });
 };
+
 
 // ✅ Delete address by ID
 exports.deleteAddressByID = (id, callback) => {

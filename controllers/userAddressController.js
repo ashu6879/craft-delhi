@@ -41,7 +41,9 @@ exports.createUserAddress = (req, res) => {
 
 // ✅ Get all User Addresses
 exports.getUserAddress = (req, res) => {
-  UserAddress.getAllAddresses((err, addresses) => {
+  const { id } = req.user; // logged-in user's ID
+
+  UserAddress.getAllAddresses(id, (err, addresses) => {
     if (err) {
       console.error('DB Error:', err);
       return res.status(500).json({ status: false, message: 'Server error' });
@@ -55,21 +57,23 @@ exports.getUserAddress = (req, res) => {
   });
 };
 
+
 // ✅ Get User Address by ID
 exports.getUserAddressbyID = (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // address ID
+  const { id: user_id } = req.user; // user ID from auth middleware
 
   if (!id) {
     return res.status(400).json({ status: false, message: 'Address ID is required' });
   }
 
-  UserAddress.getAddressByID(id, (err, address) => {
+  UserAddress.getAddressByID(id, user_id, (err, address) => {
     if (err) {
       console.error('DB Error:', err);
       return res.status(500).json({ status: false, message: 'Server error' });
     }
 
-    if (!address || address.length === 0) {
+    if (!address) { // no need to check .length since we return single record
       return res.status(404).json({ status: false, message: 'User address not found' });
     }
 
@@ -80,6 +84,7 @@ exports.getUserAddressbyID = (req, res) => {
     });
   });
 };
+
 
 // ✅ Update User Address
 exports.updateUserAddress = (req, res) => {
