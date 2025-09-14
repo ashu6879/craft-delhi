@@ -270,3 +270,29 @@ exports.deleteSellerAccount = (req, res) => {
     });
   });
 };
+
+exports.getOrderStats = (req, res) => {
+  const role = req.user.role;
+    if (role != process.env.Admin_role_id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    adminModel.getOrderStats((err, stats) => {
+      if (err) return res.status(500).json({ status: false, error: err });
+      res.json({ status: true, data: stats });
+    });
+};
+
+exports.adminOrdersView = (req, res) => {
+  const role = req.user.role;
+
+  if (role != process.env.Admin_role_id) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+
+  adminModel.getAllOrdersForAdmin((err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Failed to fetch Buyers', error: err });
+    }
+    res.status(200).json({ success: true, data: result });
+  });
+};

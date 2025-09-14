@@ -269,3 +269,62 @@ exports.deleteSellerData = (seller_id, callback) => {
   runNext();
 };
 
+exports.getOrderStats = (callback) => {
+  const sql = `
+    SELECT 
+        (SELECT COUNT(*) FROM order_details) AS total_orders,
+        (SELECT COUNT(*) FROM order_details WHERE order_status IN (0,1,2)) AS pending_orders,
+        (SELECT COUNT(*) FROM order_details WHERE order_status = 3) AS completed_orders;
+      `;
+
+  db.query(sql, (err, results) => {
+    if (err) return callback(err);
+    callback(null, results[0]);
+  });
+};
+
+exports.getAllOrdersForAdmin = (callback) => {
+  const sql = `
+    SELECT 
+      O.id, O.order_uid, O.user_id, O.total_amount, O.order_status, O.payment_status, 
+      O.payment_type, O.shipping_address_id, O.created_at,
+      OI.id AS item_id, OI.product_id, OI.quantity, OI.price
+    FROM order_details O
+    LEFT JOIN order_items OI ON O.id = OI.order_id
+    ORDER BY O.created_at DESC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return callback(err);
+
+    // Group results
+    const orders = {};
+    results.forEach(row => {
+      if (!orders[row.id]) {
+        orders[row.id] = {
+          id: row.id,
+          order_uid: row.order_uid,
+          user_id: row.user_id,
+          total_amount: row.total_amount,
+          order_status: row.order_status,
+          payment_status: row.payment_status,
+          payment_type: row.payment_type,
+          shipping_address_id: row.shipping_address_id,
+          created_at: row.created_at,
+          items: []
+        };
+      }
+      if (row.item_id) {
+        orders[row.id].items.push({
+          item_id: row.item_id,
+          product_id: row.product_id,
+          quantity: row.quantity,
+          price: row.price
+        });
+      }
+    });
+
+    callback(null, Object.values(orders));
+  });
+};
+

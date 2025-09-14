@@ -40,4 +40,7 @@ router.put(
 );
 router.post('/update-seller-approval', verifyTokenforactions, adminController.updateSellerStatus);
 router.delete('/delete-sellerbyadmin/:seller_id', verifyTokenforactions, adminController.deleteSellerAccount);
+
+router.get('/order-stats', verifyTokenforactions,  adminController.getOrderStats);
+router.get('/orders-view', verifyTokenforactions, adminController.adminOrdersView);
 module.exports = router;
