@@ -363,8 +363,7 @@ exports.deleteOrderbyAdmin = (req, res) => {
 
     res.json({
       status: true,
-      message: "Order and related items deleted successfully",
-      data: result
+      message: "Order and related items deleted successfully"
     });
   });
 };
