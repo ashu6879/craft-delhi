@@ -88,7 +88,7 @@ exports.getAllBuyersForAdmin = (callback) => {
       ud.city,
       ud.profile_image
     FROM users u
-    JOIN seller_details ud ON ud.user_id = u.id
+    LEFT JOIN seller_details ud ON ud.user_id = u.id
     where u.role = 2
     ORDER BY u.created_at DESC
   `;
