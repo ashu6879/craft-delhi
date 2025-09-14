@@ -286,23 +286,37 @@ exports.getOrderStats = (callback) => {
 exports.getAllOrdersForAdmin = (callback) => {
   const sql = `
     SELECT 
-      O.id, O.order_uid, O.user_id, O.total_amount, O.order_status, O.payment_status, 
-      O.payment_type, O.shipping_address_id, O.created_at,
-      OI.id AS item_id, OI.product_id, OI.quantity, OI.price
+      -- Order Details
+      O.id AS order_id, O.order_uid, O.user_id, O.total_amount, 
+      O.order_status, O.payment_status, O.payment_type, O.shipping_address_id, 
+      O.created_at AS order_created_at,
+
+      -- Order Items
+      OI.id AS item_id, OI.product_id, OI.quantity, OI.price AS item_price,
+
+      -- Product Details
+      P.name AS product_name, P.description AS product_description, P.price AS product_price,
+      P.category_id, P.stock, P.dimension, P.package_weight, P.weight_type, 
+      P.gallery_images, P.main_image_url, P.video_url, P.reel_url,
+
+      -- Shipping Address
+      UA.street, UA.city, UA.state, UA.country, UA.postal_code
     FROM order_details O
     LEFT JOIN order_items OI ON O.id = OI.order_id
+    LEFT JOIN products P ON P.id = OI.product_id
+    LEFT JOIN user_addresses UA ON UA.id = O.shipping_address_id
     ORDER BY O.created_at DESC
   `;
 
   db.query(sql, (err, results) => {
     if (err) return callback(err);
 
-    // Group results
     const orders = {};
+
     results.forEach(row => {
-      if (!orders[row.id]) {
-        orders[row.id] = {
-          id: row.id,
+      if (!orders[row.order_id]) {
+        orders[row.order_id] = {
+          id: row.order_id,
           order_uid: row.order_uid,
           user_id: row.user_id,
           total_amount: row.total_amount,
@@ -310,16 +324,42 @@ exports.getAllOrdersForAdmin = (callback) => {
           payment_status: row.payment_status,
           payment_type: row.payment_type,
           shipping_address_id: row.shipping_address_id,
-          created_at: row.created_at,
+          created_at: row.order_created_at,
+
+          // Shipping address
+          shipping_address: {
+            street: row.street,
+            city: row.city,
+            state: row.state,
+            country: row.country,
+            postal_code: row.postal_code
+          },
+
           items: []
         };
       }
+
       if (row.item_id) {
-        orders[row.id].items.push({
+        orders[row.order_id].items.push({
           item_id: row.item_id,
           product_id: row.product_id,
           quantity: row.quantity,
-          price: row.price
+          price: row.item_price,
+
+          product: {
+            name: row.product_name,
+            description: row.product_description,
+            price: row.product_price,
+            category_id: row.category_id,
+            stock: row.stock,
+            dimension: row.dimension,
+            package_weight: row.package_weight,
+            weight_type: row.weight_type,
+            gallery_images: row.gallery_images,
+            main_image_url: row.main_image_url,
+            video_url: row.video_url,
+            reel_url: row.reel_url
+          }
         });
       }
     });
@@ -327,6 +367,7 @@ exports.getAllOrdersForAdmin = (callback) => {
     callback(null, Object.values(orders));
   });
 };
+
 
 exports.updateOrderStatus = (order_id, updates, callback) => {
   const fields = [];
