@@ -89,7 +89,7 @@ exports.getAllBuyersForAdmin = (callback) => {
       ud.profile_image
     FROM users u
     LEFT JOIN seller_details ud ON ud.user_id = u.id
-    where u.role = 2
+    where u.role = 3
     ORDER BY u.created_at DESC
   `;
   db.query(sql, callback);
