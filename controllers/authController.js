@@ -44,25 +44,39 @@ exports.sendOtp = (req, res) => {
     }
   });
 
-  function saveAndSendOtp() {
+function saveAndSendOtp() {
     otpModel.saveOtp(email, otp, expiresAt, otp_type, async (err2) => {
-      if (err2) return res.status(500).json({ status: false, error: err2 });
+      if (err2) {
+        return res.status(500).json({ status: false, error: err2 });
+      }
 
       try {
         await sendEmail({
           to: email,
           subject: 'Your Craft Delhi OTP',
+          title: 'Email Verification',
+          message: `
+            Hello,<br><br>
+            Your One-Time Password (OTP) for Craft Delhi verification is:
+            <br><br>
+            <b style="font-size: 24px; letter-spacing: 2px;">${otp}</b>
+            <br><br>
+            This OTP will expire in <b>10 minutes</b>. 
+            Please do not share it with anyone for security reasons.
+          `,
+          buttonText: 'Verify Now',
+          buttonLink: 'https://craftdelhi.com/verify', // optional, replace with your actual verify link
           text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
-          // You can add HTML if you want
-          html: `<p>Your OTP is <b>${otp}</b>. It will expire in 10 minutes.</p>`
         });
 
         res.json({ status: true, message: 'OTP sent to email' });
       } catch (error) {
-        res.status(500).json({ status: false, error });
+        console.error('Error sending OTP email:', error);
+        res.status(500).json({ status: false, error: 'Failed to send OTP email' });
       }
     });
   }
+
 };
 
 
@@ -259,14 +273,19 @@ exports.resetPassword = (req, res) => {
   const { email, newPassword } = req.body;
 
   if (!email || !newPassword) {
-    return res.status(400).json({ status: false, message: 'Email and new password are required' });
+    return res
+      .status(400)
+      .json({ status: false, message: 'Email and new password are required' });
   }
 
   otpModel.checkIfOtpVerified(email, 'forgot_password', (err, isVerified) => {
     if (err) return res.status(500).json({ status: false, error: err });
 
     if (!isVerified) {
-      return res.status(400).json({ status: false, message: 'OTP not verified. Please verify your OTP first.' });
+      return res.status(400).json({
+        status: false,
+        message: 'OTP not verified. Please verify your OTP first.',
+      });
     }
 
     bcrypt.hash(newPassword, 10, (err2, hashedPassword) => {
@@ -277,34 +296,40 @@ exports.resetPassword = (req, res) => {
 
         otpModel.clearOtpVerification(email, 'forgot_password', async () => {
           try {
-            // 🔔 Send success email
+            // ✅ Send success email with professional template
             await sendEmail({
               to: email,
-              subject: 'Your password has been reset successfully',
+              subject: 'Password Reset Successful - Craft Delhi',
+              title: 'Password Reset Confirmation',
+              message: `
+                Hello,<br><br>
+                We wanted to let you know that your password for <b>Craft Delhi</b> has been reset successfully.<br><br>
+                If you did not initiate this request, please <b>contact our support team immediately</b> to secure your account.<br><br>
+                Stay safe,<br>
+                <b>Team Craft Delhi</b>
+              `,
+              buttonText: 'Go to Craft Delhi',
+              buttonLink: 'https://craftdelhi.com/login', // ✅ Replace with your actual site link
               text: `Hello,\n\nYour password has been reset successfully. If you did not perform this action, please contact support immediately.`,
-              html: `
-                <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-                  <h2>Password Reset Successful</h2>
-                  <p>Hello,</p>
-                  <p>Your password has been <strong>reset successfully</strong>.</p>
-                  <p>If you did not perform this action, please contact our support team immediately.</p>
-                  <br/>
-                  <p>Best regards,<br/>Craft Delhi Team</p>
-                </div>
-              `
             });
 
-            res.json({ status: true, message: 'Password reset successful' });
+            res.json({
+              status: true,
+              message: 'Password reset successful',
+            });
           } catch (mailErr) {
             console.error('Failed to send password reset success email:', mailErr);
-            // Still respond success for password reset
-            res.json({ status: true, message: 'Password reset successful, but email could not be sent.' });
+            res.json({
+              status: true,
+              message: 'Password reset successful, but email could not be sent.',
+            });
           }
         });
       });
     });
   });
 };
+
 
 exports.tempApproval = (req, res) => {
   const { email, approvalstatus } = req.body;
