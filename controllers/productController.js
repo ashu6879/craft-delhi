@@ -232,7 +232,7 @@ exports.updateProduct = async (req, res) => {
     productModel,
     product_id,
     userId,
-    { getMethod: 'getProductbyID', ownerField: 'seller_id' },
+    { getMethod: 'getProductbyIDforVerification', ownerField: 'seller_id' },
     async (authError, existingProduct) => {
       if (authError) {
         return res.status(authError.code).json({ status: false, message: authError.message });

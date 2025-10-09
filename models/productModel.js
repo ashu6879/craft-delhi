@@ -44,6 +44,20 @@ exports.getProductbyID = (productId, userId, callback) => {
   });
 };
 
+exports.getProductbyIDforVerification = (productId, callback) => {
+  const sql = `
+    SELECT 
+      p.*
+    FROM products p
+    WHERE p.id = ?
+  `;
+
+  db.query(sql, [productId], (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results); // single product with is_favourite flag
+  });
+};
+
 
 exports.deleteProductID = (id, callback) => {
   const sql = 'DELETE FROM products WHERE id = ?';
