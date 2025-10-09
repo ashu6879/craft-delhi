@@ -16,9 +16,10 @@ exports.getStoreBySellerId = (sellerId, callback) => {
       ss.store_created_date,
       ss.business_number,
       ss.store_image,
-      ss.first_name,
-      ss.last_name
+      s.first_name,
+      s.last_name
     FROM seller_stores ss
+    left Join users s on s.id = ss.seller_id
     WHERE seller_id = ? 
     LIMIT 1
   `;
