@@ -19,7 +19,7 @@ exports.getStoreBySellerId = (sellerId, callback) => {
       s.first_name,
       s.last_name
     FROM seller_stores ss
-    left Join users s on s.id = ss.seller_id
+    LEFT JOIN users s ON s.id = ss.seller_id
     WHERE seller_id = ? 
     LIMIT 1
   `;
@@ -32,7 +32,8 @@ exports.getStoreBySellerId = (sellerId, callback) => {
 
     // Generate slug if it doesn't exist
     if (!store.slug) {
-      let baseSlug = slugify(`${store.last_name}-${store.first_name}`, { lower: true });
+      // Include seller_id in the base slug for uniqueness
+      let baseSlug = slugify(`${store.last_name}-${store.first_name}-${store.seller_id}`, { lower: true });
       let slug = baseSlug;
       let counter = 1;
 
@@ -71,6 +72,7 @@ exports.getStoreBySellerId = (sellerId, callback) => {
     }
   });
 };
+
 
 // Create a store
 exports.createStore = (data, callback) => {
