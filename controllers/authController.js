@@ -45,37 +45,39 @@ exports.sendOtp = (req, res) => {
   });
 
 function saveAndSendOtp() {
-    otpModel.saveOtp(email, otp, expiresAt, otp_type, async (err2) => {
-      if (err2) {
-        return res.status(500).json({ status: false, error: err2 });
-      }
+  otpModel.saveOtp(email, otp, expiresAt, otp_type, async (err2) => {
+    if (err2) {
+      return res.status(500).json({ status: false, error: err2 });
+    }
 
-      try {
-        await sendEmail({
-          to: email,
-          subject: 'Your Craft Delhi OTP',
-          title: 'Email Verification',
-          message: `
-            Hello,<br><br>
-            Your One-Time Password (OTP) for Craft Delhi verification is:
-            <br><br>
-            <b style="font-size: 24px; letter-spacing: 2px;">${otp}</b>
-            <br><br>
-            This OTP will expire in <b>10 minutes</b>. 
-            Please do not share it with anyone for security reasons.
-          `,
-          buttonText: 'Verify Now',
-          buttonLink: 'https://craftdelhi.com/verify', // optional, replace with your actual verify link
-          text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
-        });
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'Your Craft Delhi OTP',
+        title: 'Email Verification',
+        message: `
+          Hello,<br><br>
+          Your One-Time Password (OTP) for <b>Craft Delhi</b> verification is:
+          <br><br>
+          <b style="font-size: 24px; letter-spacing: 2px;">${otp}</b>
+          <br><br>
+          This OTP will expire in <b>10 minutes</b>. 
+          Please do not share it with anyone for security reasons.
+          <br><br>
+          Best regards,<br>
+          <b>Team Craft Delhi</b>
+        `,
+        text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
+      });
 
-        res.json({ status: true, message: 'OTP sent to email' });
-      } catch (error) {
-        console.error('Error sending OTP email:', error);
-        res.status(500).json({ status: false, error: 'Failed to send OTP email' });
-      }
-    });
-  }
+      res.json({ status: true, message: 'OTP sent to email' });
+    } catch (error) {
+      console.error('Error sending OTP email:', error);
+      res.status(500).json({ status: false, error: 'Failed to send OTP email' });
+    }
+  });
+}
+
 
 };
 
@@ -199,7 +201,9 @@ exports.setPassword = (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ status: false, message: 'Email and password are required' });
+    return res
+      .status(400)
+      .json({ status: false, message: 'Email and password are required' });
   }
 
   userModel.findByEmail(email, (err, results) => {
@@ -213,14 +217,46 @@ exports.setPassword = (req, res) => {
 
     // 🔍 Check if email is verified
     if (!user.is_email_verified) {
-      return res.status(400).json({ status: false, message: 'Email is not verified' });
+      return res
+        .status(400)
+        .json({ status: false, message: 'Email is not verified' });
     }
 
     const hashed = bcrypt.hashSync(password, 10);
 
-    userModel.updatePasswordByEmail(email, hashed, (errUpdate) => {
-      if (errUpdate) return res.status(500).json({ status: false, error: errUpdate });
-      res.json({ status: true, message: 'Password set successfully. You can now log in.' });
+    userModel.updatePasswordByEmail(email, hashed, async (errUpdate) => {
+      if (errUpdate)
+        return res.status(500).json({ status: false, error: errUpdate });
+
+      try {
+        // ✅ Send confirmation email (no button)
+        await sendEmail({
+          to: email,
+          subject: 'Password Set Successfully - Craft Delhi',
+          title: 'Password Set Successfully',
+          message: `
+            Hello,<br><br>
+            Your password has been successfully set for your <b>Craft Delhi</b> account.<br><br>
+            You can now log in and explore our platform.<br><br>
+            If you didn’t request this action, please <b>contact our support team immediately</b>.<br><br>
+            Warm regards,<br>
+            <b>Team Craft Delhi</b>
+          `,
+          text: `Hello,\n\nYour password has been set successfully for your Craft Delhi account.\n\nIf this wasn't you, please contact our support team immediately.`,
+        });
+
+        res.json({
+          status: true,
+          message: 'Password set successfully. Confirmation email sent.',
+        });
+      } catch (mailErr) {
+        console.error('Failed to send password set confirmation email:', mailErr);
+        res.json({
+          status: true,
+          message:
+            'Password set successfully, but confirmation email could not be sent.',
+        });
+      }
     });
   });
 };
@@ -296,20 +332,18 @@ exports.resetPassword = (req, res) => {
 
         otpModel.clearOtpVerification(email, 'forgot_password', async () => {
           try {
-            // ✅ Send success email with professional template
+            // ✅ Send success email (no button)
             await sendEmail({
               to: email,
               subject: 'Password Reset Successful - Craft Delhi',
               title: 'Password Reset Confirmation',
               message: `
                 Hello,<br><br>
-                We wanted to let you know that your password for <b>Craft Delhi</b> has been reset successfully.<br><br>
-                If you did not initiate this request, please <b>contact our support team immediately</b> to secure your account.<br><br>
+                Your password for <b>Craft Delhi</b> has been reset successfully.<br><br>
+                If you did not initiate this action, please <b>contact our support team immediately</b> to secure your account.<br><br>
                 Stay safe,<br>
                 <b>Team Craft Delhi</b>
               `,
-              buttonText: 'Go to Craft Delhi',
-              buttonLink: 'https://craftdelhi.com/login', // ✅ Replace with your actual site link
               text: `Hello,\n\nYour password has been reset successfully. If you did not perform this action, please contact support immediately.`,
             });
 
@@ -329,6 +363,7 @@ exports.resetPassword = (req, res) => {
     });
   });
 };
+
 
 
 exports.tempApproval = (req, res) => {
