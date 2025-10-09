@@ -12,6 +12,6 @@ router.put(
   sellerStoreController.updateStore
 );
 router.get('/getdetails',verifyTokenforactions, sellerStoreController.getStoreBySellerId);
-
+router.get('/link/:id',verifyTokenforactions, sellerStoreController.getStoreLinkBySellerId);
 
 module.exports = router;

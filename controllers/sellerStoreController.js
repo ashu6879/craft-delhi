@@ -140,3 +140,51 @@ exports.getStoreBySellerId = (req, res) => {
     });
   });
 };
+
+
+exports.getStoreLinkBySellerId = async (req, res) => {
+  const storeId = req.params.id;
+
+  try {
+    // Fetch store from DB
+    const store = await SellerStore.findById(storeId);
+    if (!store) return res.status(404).json({ status: false, message: 'Store not found' });
+
+    let slug = store.slug;
+
+    // Generate slug if it doesn't exist
+    if (!slug) {
+      let baseSlug = slugify(`${store.last_name}-${store.first_name}`, { lower: true });
+      let uniqueSlug = baseSlug;
+      let counter = 1;
+
+      // Ensure uniqueness
+      while (await SellerStore.isSlugExists(uniqueSlug)) {
+        uniqueSlug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+      slug = uniqueSlug;
+
+      // Generate store link
+      const storeLink = `https://craftdelhi.com/store/${slug}`;
+
+      // Save slug and store_link in DB
+      await SellerStore.updateSlug(store.id, slug, storeLink);
+
+      // Update store object to include new values
+      store.slug = slug;
+      store.store_link = storeLink;
+    }
+
+    // Return shareable link
+    res.json({
+      status: true,
+      storeLink: store.store_link || `https://craftdelhi.com/store/${slug}`,
+      store,
+    });
+
+  } catch (err) {
+    console.error('Error fetching store or generating link:', err);
+    res.status(500).json({ status: false, error: 'Internal Server Error' });
+  }
+};
