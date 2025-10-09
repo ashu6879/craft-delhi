@@ -20,7 +20,7 @@ exports.getStoreBySellerId = (sellerId, callback) => {
       s.last_name
     FROM seller_stores ss
     LEFT JOIN users s ON s.id = ss.seller_id
-    WHERE seller_id = ? 
+    WHERE ss.seller_id = ? 
     LIMIT 1
   `;
 
@@ -32,12 +32,11 @@ exports.getStoreBySellerId = (sellerId, callback) => {
 
     // Generate slug if it doesn't exist
     if (!store.slug) {
-      // Include seller_id in the base slug for uniqueness
-      let baseSlug = slugify(`${store.last_name}-${store.first_name}-${store.seller_id}`, { lower: true });
+      const baseSlug = slugify(`${store.last_name}-${store.first_name}`, { lower: true });
       let slug = baseSlug;
       let counter = 1;
 
-      const checkSlugAndUpdate = () => {
+      const generateUniqueSlug = () => {
         db.query('SELECT id FROM seller_stores WHERE slug = ?', [slug], (err2, res2) => {
           if (err2) return callback(err2, null);
 
@@ -45,9 +44,9 @@ exports.getStoreBySellerId = (sellerId, callback) => {
             // Slug exists, add counter
             slug = `${baseSlug}-${counter}`;
             counter++;
-            checkSlugAndUpdate();
+            generateUniqueSlug();
           } else {
-            // Slug is unique, generate store link and save
+            // Slug is unique, update DB
             const storeLink = `https://craftdelhi.com/store/${slug}`;
             db.query(
               'UPDATE seller_stores SET slug = ?, store_link = ? WHERE id = ?',
@@ -65,14 +64,13 @@ exports.getStoreBySellerId = (sellerId, callback) => {
         });
       };
 
-      checkSlugAndUpdate();
+      generateUniqueSlug();
     } else {
       // Slug already exists
       return callback(null, store);
     }
   });
 };
-
 
 // Create a store
 exports.createStore = (data, callback) => {
