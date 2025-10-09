@@ -140,3 +140,29 @@ exports.updateSlug = (id, slug, storeLink, callback) => {
     return callback(null, results);
   });
 };
+
+exports.getStoreBySlug = (slug, callback) => {
+  const query = `
+    SELECT 
+      ss.id,
+      ss.store_name,
+      ss.store_username,
+      ss.store_link,
+      ss.slug,
+      ss.description,
+      ss.store_created_date,
+      ss.business_number,
+      ss.store_image,
+      s.first_name,
+      s.last_name
+    FROM seller_stores ss
+    LEFT JOIN users s ON s.id = ss.seller_id
+    WHERE ss.slug = ?
+    LIMIT 1
+  `;
+
+  db.query(query, [slug], (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results[0] || null);
+  });
+};

@@ -188,3 +188,15 @@ exports.getStoreLinkBySellerId = async (req, res) => {
     res.status(500).json({ status: false, error: 'Internal Server Error' });
   }
 };
+
+exports.getStoreBySlug = (req, res) => {
+  const slug = req.params.slug;
+
+  SellerStore.getStoreBySlug(slug, (err, store) => {
+    if (err) return res.status(500).json({ status: false, error: err });
+    if (!store) return res.status(404).json({ status: false, message: 'Store not found' });
+
+    // Send store data (or render a view if using templating engine)
+    res.json({ status: true, store });
+  });
+};
