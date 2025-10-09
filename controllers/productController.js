@@ -86,15 +86,20 @@ exports.addProduct = async (req, res) => {
       name, description, price, category_id,
       stock, dimension, package_weight,
       weight_type, warranty_type,
+      video_name, // from req.body
+      reel_name   // from req.body
     } = req.body;
 
     const seller_id = req.user.id;
 
     if (!name || !price || !category_id || !seller_id) {
-      return res.status(400).json({ status: false,error: 'Name, price, seller_id, and category_id are required.' });
+      return res.status(400).json({
+        status: false,
+        error: 'Name, price, seller_id, and category_id are required.'
+      });
     }
 
-    // Generate SKU: clean + no hyphens + alphanumeric only
+    // Generate SKU
     const timestamp = Date.now();
     const rawSlug = slugify(name, { lower: true });
     const cleanSlug = rawSlug.replace(/[^a-zA-Z0-9]/g, '');
@@ -139,17 +144,25 @@ exports.addProduct = async (req, res) => {
       gallery_images: JSON.stringify(galleryImages),
       video_url: videoUrl,
       reel_url: reelUrl,
-      seller_id
+      video_name, // from req.body
+      reel_name,  // from req.body
+      seller_id,
+      status: 1 // default true
     };
 
     await productModel.insert(productData);
-    res.status(200).json({ status: true,message: 'Product added successfully', product_sku });
+    res.status(200).json({
+      status: true,
+      message: 'Product added successfully',
+      product_sku
+    });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({status: false, error: 'Something went wrong' });
+    res.status(500).json({ status: false, error: 'Something went wrong' });
   }
 };
+
 
 exports.getProducts = (req, res) => {
   // If token exists, get id, else set to null
@@ -244,12 +257,15 @@ async function handleProductUpdate(existingProduct, product_id, req, res) {
       warranty_type,
       main_image_url,
       video_url,
-      reel_url
+      video_name,
+      reel_name,
+      reel_url,
+      status
     } = req.body || {};
 
     const updateData = {
       name, description, price, category_id, stock,
-      dimension, package_weight, weight_type, warranty_type
+      dimension, package_weight, weight_type, warranty_type, video_name, reel_name, status
     };
 
     // 🖼️ Gallery images
