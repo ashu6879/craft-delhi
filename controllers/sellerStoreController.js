@@ -166,7 +166,7 @@ exports.getStoreLinkBySellerId = async (req, res) => {
       slug = uniqueSlug;
 
       // Generate store link
-      const storeLink = `https://craftdelhi.com/store/${slug}`;
+      const storeLink = `https://craftdelhi.com/seller-store/${slug}`;
 
       // Save slug and store_link in DB
       await SellerStore.updateSlug(store.id, slug, storeLink);
@@ -179,7 +179,7 @@ exports.getStoreLinkBySellerId = async (req, res) => {
     // Return shareable link
     res.json({
       status: true,
-      storeLink: store.store_link || `https://craftdelhi.com/store/${slug}`,
+      storeLink: store.store_link || `https://craftdelhi.com/seller-store/${slug}`,
       store,
     });
 

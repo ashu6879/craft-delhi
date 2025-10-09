@@ -47,7 +47,7 @@ exports.getStoreBySellerId = (sellerId, callback) => {
             generateUniqueSlug();
           } else {
             // Slug is unique, update DB
-            const storeLink = `https://craftdelhi.com/store/${slug}`;
+            const storeLink = `https://craftdelhi.com/seller-store/${slug}`;
             db.query(
               'UPDATE seller_stores SET slug = ?, store_link = ? WHERE id = ?',
               [slug, storeLink, store.id],
