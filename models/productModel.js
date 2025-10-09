@@ -54,7 +54,7 @@ exports.getProductbyIDforVerification = (productId, callback) => {
 
   db.query(sql, [productId], (err, results) => {
     if (err) return callback(err, null);
-    return callback(null, results); // single product with is_favourite flag
+    return callback(null, results[0]); // single product with is_favourite flag
   });
 };
 
