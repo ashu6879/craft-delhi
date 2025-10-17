@@ -40,19 +40,38 @@ exports.deleteProduct = (req, res) => {
 async function deleteMediaAndProduct(product, product_id, res) {
   const mediaUrls = [];
 
+  // Add main, video, reel URLs if available
   if (product.main_image_url) mediaUrls.push(product.main_image_url);
   if (product.video_url) mediaUrls.push(product.video_url);
   if (product.reel_url) mediaUrls.push(product.reel_url);
 
+  // ✅ Safely parse gallery_images
   if (product.gallery_images) {
     try {
-      const gallery = JSON.parse(product.gallery_images);
-      if (Array.isArray(gallery)) mediaUrls.push(...gallery);
+      const raw = product.gallery_images.trim();
+
+      let gallery = [];
+
+      // If value looks like JSON array
+      if (raw.startsWith('[') && raw.endsWith(']')) {
+        gallery = JSON.parse(raw);
+      } else if (raw.includes(',')) {
+        // Comma-separated fallback
+        gallery = raw.split(',').map(url => url.trim());
+      } else if (raw.startsWith('http')) {
+        // Single URL fallback
+        gallery = [raw];
+      }
+
+      if (Array.isArray(gallery) && gallery.length > 0) {
+        mediaUrls.push(...gallery);
+      }
     } catch (err) {
-      console.error('Failed to parse gallery_images:', err);
+      console.error('Failed to parse gallery_images:', err.message);
     }
   }
 
+  // Delete from S3
   try {
     const result = await deleteFilesFromS3(mediaUrls, bucketName);
     console.log('S3 deletion result:', result);
@@ -60,8 +79,10 @@ async function deleteMediaAndProduct(product, product_id, res) {
     console.error('S3 deletion failed, proceeding with DB delete anyway');
   }
 
+  // Proceed with DB deletion
   proceedWithDeletion(product_id, res);
 }
+
 
 function proceedWithDeletion(product_id, res) {
   productModel.deleteProductID(product_id, (err, result) => {
