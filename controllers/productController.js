@@ -23,10 +23,9 @@ exports.deleteProduct = (req, res) => {
       await deleteMediaAndProduct(product, product_id, res);
     });
   }
-
   // Seller: must own the product
   authorizeAction(productModel, parseInt(product_id), userId, {
-    getMethod: 'getProductbyID',
+    getMethod: 'getProductbyIDforVerification',
     ownerField: 'seller_id'
   }, async (authError, product) => {
     if (authError) {
