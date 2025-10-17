@@ -45,22 +45,27 @@ async function deleteMediaAndProduct(product, product_id, res) {
   if (product.video_url) mediaUrls.push(product.video_url);
   if (product.reel_url) mediaUrls.push(product.reel_url);
 
-  // ✅ Safely parse gallery_images
+  // ✅ Handle gallery_images safely (string, array, or null)
   if (product.gallery_images) {
     try {
-      const raw = product.gallery_images.trim();
-
       let gallery = [];
 
-      // If value looks like JSON array
-      if (raw.startsWith('[') && raw.endsWith(']')) {
-        gallery = JSON.parse(raw);
-      } else if (raw.includes(',')) {
-        // Comma-separated fallback
-        gallery = raw.split(',').map(url => url.trim());
-      } else if (raw.startsWith('http')) {
-        // Single URL fallback
-        gallery = [raw];
+      if (Array.isArray(product.gallery_images)) {
+        // Already parsed JSON array
+        gallery = product.gallery_images;
+      } else if (typeof product.gallery_images === 'string') {
+        const raw = product.gallery_images.trim();
+
+        if (raw.startsWith('[') && raw.endsWith(']')) {
+          // Proper JSON array string
+          gallery = JSON.parse(raw);
+        } else if (raw.includes(',')) {
+          // Comma-separated URLs
+          gallery = raw.split(',').map(url => url.trim());
+        } else if (raw.startsWith('http')) {
+          // Single URL
+          gallery = [raw];
+        }
       }
 
       if (Array.isArray(gallery) && gallery.length > 0) {
@@ -71,7 +76,7 @@ async function deleteMediaAndProduct(product, product_id, res) {
     }
   }
 
-  // Delete from S3
+  // Delete files from S3
   try {
     const result = await deleteFilesFromS3(mediaUrls, bucketName);
     console.log('S3 deletion result:', result);
@@ -82,6 +87,7 @@ async function deleteMediaAndProduct(product, product_id, res) {
   // Proceed with DB deletion
   proceedWithDeletion(product_id, res);
 }
+
 
 
 function proceedWithDeletion(product_id, res) {
