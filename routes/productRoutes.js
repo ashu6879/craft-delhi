@@ -38,4 +38,9 @@ router.put(
   productController.updateProduct
 );
 
+router.put(
+  '/updatestatus/:product_id',verifyTokenforactions, 
+  productController.updateProductStatus
+);
+
 module.exports = router;

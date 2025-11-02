@@ -125,6 +125,21 @@ exports.addProduct = async (req, res) => {
       });
     }
 
+    // 🧮 Convert price: handle single or comma-separated prices
+    let finalPrice;
+    if (typeof price === "string" && price.includes(',')) {
+      finalPrice = price
+        .split(',')
+        .map(p => {
+          const num = Number(p.trim());
+          return isNaN(num) ? 0 : num - 1;
+        })
+        .join(',');
+    } else {
+      const num = Number(price);
+      finalPrice = isNaN(num) ? 0 : num - 1;
+    }
+
     // Generate SKU
     const timestamp = Date.now();
     const rawSlug = slugify(name, { lower: true });
@@ -159,7 +174,7 @@ exports.addProduct = async (req, res) => {
       name,
       product_sku,
       description,
-      price,
+      price: finalPrice, // 👈 use modified price here
       category_id,
       stock,
       dimension,
@@ -177,10 +192,12 @@ exports.addProduct = async (req, res) => {
     };
 
     await productModel.insert(productData);
+
     res.status(200).json({
       status: true,
       message: 'Product added successfully',
-      product_sku
+      product_sku,
+      finalPrice
     });
 
   } catch (error) {
@@ -188,6 +205,7 @@ exports.addProduct = async (req, res) => {
     res.status(500).json({ status: false, error: 'Something went wrong' });
   }
 };
+
 
 
 exports.getProducts = (req, res) => {
@@ -371,6 +389,71 @@ async function handleProductUpdate(existingProduct, product_id, req, res) {
   } catch (uploadErr) {
     console.error('Upload or S3 error:', uploadErr);
     return res.status(500).json({ status: false, message: 'Error processing uploads', error: uploadErr });
+  }
+}
+
+exports.updateProductStatus = async (req, res) => {
+  const { product_id } = req.params;
+  const { status } = req.body;
+  const userId = req.user?.id;
+  const roleId = req.user?.role;
+
+  if (!product_id) {
+    return res.status(400).json({ status: false, message: 'Product ID is required' });
+  }
+
+  if (typeof status === 'undefined') {
+    return res.status(400).json({ status: false, message: 'Status value is required' });
+  }
+
+  // 🔹 If Admin — can update any product
+  if (roleId === parseInt(process.env.Admin_role_id)) {
+    return productModel.getProductbyID(product_id, async (err, existingProduct) => {
+      if (err || !existingProduct) {
+        return res.status(404).json({ status: false, message: 'Product not found' });
+      }
+
+      await updateStatusOnly(product_id, status, res);
+    });
+  }
+
+  // 🔹 If Seller — must own the product
+  authorizeAction(
+    productModel,
+    product_id,
+    userId,
+    { getMethod: 'getProductbyIDforVerification', ownerField: 'seller_id' },
+    async (authError, existingProduct) => {
+      if (authError) {
+        return res.status(authError.code).json({ status: false, message: authError.message });
+      }
+
+      await updateStatusOnly(product_id, status, res);
+    }
+  );
+};
+
+async function updateStatusOnly(product_id, status, res) {
+  try {
+    productModel.updateProductByID(
+      product_id,
+      { status },
+      (err, result) => {
+        if (err) {
+          console.error('DB update error:', err);
+          return res.status(500).json({ status: false, message: 'Error updating product status' });
+        }
+
+        if (result.affectedRows > 0) {
+          return res.status(200).json({ status: true, message: 'Product status updated successfully' });
+        } else {
+          return res.status(400).json({ status: false, message: 'No product updated (possibly same status)' });
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Status update error:', error);
+    return res.status(500).json({ status: false, message: 'Error updating status' });
   }
 }
 
