@@ -13,6 +13,7 @@ router.put(
 );
 router.get('/getdetails',verifyTokenforactions, sellerStoreController.getStoreBySellerId);
 router.get('/link/:id',verifyTokenforactions, sellerStoreController.getStoreLinkBySellerId);
+router.get('/getsalesummary',verifyTokenforactions, sellerStoreController.getsellerySaleSummary);
 router.get('/:slug', sellerStoreController.getStoreBySlug);
 
 module.exports = router;

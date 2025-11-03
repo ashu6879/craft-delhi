@@ -175,3 +175,32 @@ exports.getStoreBySlug = (req, res) => {
     res.json({ status: true, store });
   });
 };
+
+exports.getsellerySaleSummary = (req, res) => {
+  const sellerId = req.user?.id;
+
+  if (req.user.role !== 2) {
+    return res.status(403).json({ status: false, message: 'Only sellers can access store details.' });
+  }
+
+  if (!sellerId || isNaN(sellerId)) {
+    return res.status(400).json({ status: false, message: 'Invalid seller ID' });
+  }
+
+  SellerStore.getSaleSummary(sellerId, (err, store) => {
+    if (err) {
+      console.error('MySQL error:', err);
+      return res.status(500).json({ status: false, message: 'Internal server error' });
+    }
+
+    if (!store) {
+      return res.status(404).json({ status: false, message: 'summary not found for this seller' });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'Store sale summary fetched successfully.',
+      store
+    });
+  });
+};

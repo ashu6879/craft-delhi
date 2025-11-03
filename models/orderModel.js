@@ -2,22 +2,32 @@ const db = require('../config/db');
 
 // ✅ Create a new order
 exports.createOrder = (userId, data, callback) => {
-  const { order_uid,total_amount, order_status, payment_status, payment_type, shipping_address_id } = data;
+  const {
+    order_uid,
+    total_amount,
+    order_status,
+    payment_status,
+    payment_type,
+    shipping_address_id,
+    seller_id // ✅ added seller_id
+  } = data;
 
   const query = `
-    INSERT INTO order_details (order_uid, user_id, total_amount, order_status, payment_status, payment_type, shipping_address_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO order_details 
+      (order_uid, user_id, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     query,
-    [order_uid, userId, total_amount, order_status, payment_status, payment_type, shipping_address_id],
+    [order_uid, userId, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id],
     (err, result) => {
       if (err) return callback(err, null);
       callback(null, result);
     }
   );
 };
+
 
 // ✅ Insert multiple order items
 exports.createOrderItems = (orderId, items, callback) => {
@@ -92,6 +102,77 @@ exports.getOrderById = (orderId, userId, callback) => {
     };
 
     callback(null, order);
+  });
+};
+
+exports.getrecentOrdersbySellerID = (sellerId, callback) => {
+  const query = `
+    SELECT 
+      od.id AS order_id,
+      od.order_uid,
+      od.user_id,
+      od.total_amount,
+      od.order_status,
+      od.payment_status,
+      od.payment_type,
+      od.shipping_address_id,
+      od.seller_id,
+      od.created_at,
+      oi.id AS item_id,
+      oi.product_id,
+      oi.quantity,
+      oi.price,
+      oi.subtotal,
+      u.first_name,
+      u.last_name,
+      p.name AS product_name
+    FROM order_details od
+    LEFT JOIN order_items oi ON oi.order_id = od.id
+    LEFT JOIN users u ON u.id = od.user_id
+    LEFT JOIN products p ON p.id = oi.product_id
+    WHERE od.seller_id = ?
+    ORDER BY od.created_at DESC
+  `;
+
+  db.query(query, [sellerId], (err, results) => {
+    if (err) return callback(err, null);
+    if (!results.length) return callback(null, []);
+
+    // ✅ Group items under each order
+    const ordersMap = {};
+
+    results.forEach(row => {
+      if (!ordersMap[row.order_id]) {
+        ordersMap[row.order_id] = {
+          order_id: row.order_id,
+          order_uid: row.order_uid,
+          user_id: row.user_id,
+          buyer_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+          total_amount: row.total_amount,
+          order_status: row.order_status,
+          payment_status: row.payment_status,
+          payment_type: row.payment_type,
+          shipping_address_id: row.shipping_address_id,
+          seller_id: row.seller_id,
+          created_at: row.created_at,
+          items: []
+        };
+      }
+
+      if (row.item_id) {
+        ordersMap[row.order_id].items.push({
+          item_id: row.item_id,
+          product_id: row.product_id,
+          product_name: row.product_name,
+          quantity: row.quantity,
+          price: row.price,
+          subtotal: row.subtotal
+        });
+      }
+    });
+
+    const orders = Object.values(ordersMap);
+    callback(null, orders);
   });
 };
 

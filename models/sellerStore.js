@@ -166,3 +166,17 @@ exports.getStoreBySlug = (slug, callback) => {
     return callback(null, results[0] || null);
   });
 };
+
+exports.getSaleSummary = (sellerId, callback) => {
+  const sql = `
+    SELECT 
+      (SELECT COUNT(*) FROM order_details WHERE seller_id = ?) AS total_orders,
+      (SELECT COUNT(*) FROM order_details WHERE seller_id = ? AND order_status = 0) AS total_pending_orders,
+      (SELECT COUNT(*) FROM order_details WHERE seller_id = ? AND order_status = 4) AS total_cancelled_orders
+  `;
+
+  db.query(sql, [sellerId, sellerId, sellerId], (err, results) => {  // ✅ fix here
+    if (err) return callback(err);
+    callback(null, results[0]);
+  });
+};
