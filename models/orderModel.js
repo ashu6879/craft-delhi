@@ -188,3 +188,17 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
   });
 };
 
+exports.getOrderByIDforVerification = (order_id, callback) => {
+  const sql = `SELECT id, seller_id FROM order_details WHERE id = ?`;
+  db.query(sql, [order_id], (err, results) => {
+    if (err) return callback(err, null);
+    callback(null, results[0] || null);
+  });
+};
+
+exports.updateOrderByID = (order_id, data, callback) => {
+  const fields = Object.keys(data).map(key => `${key} = ?`).join(', ');
+  const values = Object.values(data);
+  const sql = `UPDATE order_details SET ${fields} WHERE id = ?`;
+  db.query(sql, [...values, order_id], callback);
+};

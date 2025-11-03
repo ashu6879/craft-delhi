@@ -1,4 +1,5 @@
 const Order = require('../models/orderModel');
+const authorizeAction = require('../utils/authorizeAction');
 
 // ✅ Create Order
 exports.createOrder = (req, res) => {
@@ -80,3 +81,76 @@ exports.recentOrderbySeller = (req, res) => {
     });
   });
 };
+
+exports.updateOrderStatus = (req, res) => {
+  const { order_id } = req.params;
+  const { order_status } = req.body;
+  const userId = req.user?.id;
+  const roleId = req.user?.role;
+
+  if (!order_id) {
+    return res.status(400).json({ status: false, message: 'Order ID is required' });
+  }
+
+  if (typeof order_status === 'undefined') {
+    return res.status(400).json({ status: false, message: 'Order status value is required' });
+  }
+
+  // 🔹 If Admin — can update any order
+  if (roleId === parseInt(process.env.Admin_role_id)) {
+    return Order.getOrderByIDforVerification(order_id, async (err, existingOrder) => {
+      if (err || !existingOrder) {
+        return res.status(404).json({ status: false, message: 'Order not found' });
+      }
+
+      await updateOrderStatusOnly(order_id, order_status, res);
+    });
+  }
+
+  // 🔹 If Seller — must own the order
+  authorizeAction(
+    Order,
+    order_id,
+    userId,
+    { getMethod: 'getOrderByIDforVerification', ownerField: 'seller_id' },
+    async (authError, existingOrder) => {
+      if (authError) {
+        return res.status(authError.code).json({ status: false, message: authError.message });
+      }
+
+      await updateOrderStatusOnly(order_id, order_status, res);
+    }
+  );
+};
+
+// ✅ Helper Function
+async function updateOrderStatusOnly(order_id, order_status, res) {
+  try {
+    Order.updateOrderByID(
+      order_id,
+      { order_status },
+      (err, result) => {
+        if (err) {
+          console.error('DB update error:', err);
+          return res.status(500).json({ status: false, message: 'Error updating order status' });
+        }
+
+        if (result.affectedRows > 0) {
+          return res.status(200).json({
+            status: true,
+            message: 'Order status updated successfully'
+          });
+        } else {
+          return res.status(400).json({
+            status: false,
+            message: 'No order updated (possibly same status)'
+          });
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Status update error:', error);
+    return res.status(500).json({ status: false, message: 'Error updating order status' });
+  }
+}
+

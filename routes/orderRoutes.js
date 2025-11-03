@@ -5,5 +5,6 @@ const { verifyTokenforactions } = require('../utils/authMiddleware');
 
 router.post('/create', verifyTokenforactions, orderController.createOrder);
 router.get('/recentorders', verifyTokenforactions,orderController.recentOrderbySeller);
+router.put('/updateorderstatus/:order_id', verifyTokenforactions,orderController.updateOrderStatus);
 
 module.exports = router;
