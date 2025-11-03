@@ -119,6 +119,7 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
       od.payment_status,
       od.payment_type,
       od.shipping_address_id,
+      od.buyer_note,
       od.seller_id,
       od.created_at,
       oi.id AS item_id,
@@ -128,11 +129,17 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
       oi.subtotal,
       u.first_name,
       u.last_name,
-      p.name AS product_name
+      p.name AS product_name,
+      ua.street,
+      ua.city,
+      ua.state,
+      ua.country,
+      ua.postal_code
     FROM order_details od
     LEFT JOIN order_items oi ON oi.order_id = od.id
     LEFT JOIN users u ON u.id = od.user_id
     LEFT JOIN products p ON p.id = oi.product_id
+    LEFT JOIN user_addresses ua ON ua.id = od.shipping_address_id
     WHERE od.seller_id = ?
     ORDER BY od.created_at DESC
   `;
@@ -156,6 +163,7 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
           payment_status: row.payment_status,
           payment_type: row.payment_type,
           shipping_address_id: row.shipping_address_id,
+          shipping_info: `${row.street || ''} ${row.city || ''} ${row.state || ''} ${row.country || ''} ${row.postal_code || ''}`.trim(),
           buyer_note: results[0].buyer_note,
           seller_id: row.seller_id,
           created_at: row.created_at,
