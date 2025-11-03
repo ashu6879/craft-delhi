@@ -3,7 +3,7 @@ const Order = require('../models/orderModel');
 // ✅ Create Order
 exports.createOrder = (req, res) => {
   const userId = req.user?.id;
-  const { total_amount, order_status, payment_status, payment_type, shipping_address_id, items } = req.body;
+  const { total_amount, order_status, payment_status, payment_type, shipping_address_id, items, buyer_note } = req.body;
 
   if (!userId) {
     return res.status(401).json({ status: false, message: 'Unauthorized: User ID not found' });
@@ -21,7 +21,7 @@ exports.createOrder = (req, res) => {
   // Step 1: Insert order
   Order.createOrder(
     userId,
-    { order_uid, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id }, // ✅ add seller_id here
+    { order_uid, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id, buyer_note }, // ✅ add seller_id here
     (err, orderResult) => {
       if (err) {
         console.error('Order Insert Error:', err);

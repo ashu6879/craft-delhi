@@ -9,18 +9,19 @@ exports.createOrder = (userId, data, callback) => {
     payment_status,
     payment_type,
     shipping_address_id,
-    seller_id // ✅ added seller_id
+    seller_id,
+    buyer_note // ✅ added seller_id
   } = data;
 
   const query = `
     INSERT INTO order_details 
-      (order_uid, user_id, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (order_uid, user_id, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id, buyer_note)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     query,
-    [order_uid, userId, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id],
+    [order_uid, userId, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id, buyer_note],
     (err, result) => {
       if (err) return callback(err, null);
       callback(null, result);
@@ -66,6 +67,7 @@ exports.getOrderById = (orderId, userId, callback) => {
       od.payment_status,
       od.payment_type,
       od.shipping_address_id,
+      od.buyer_note,
       od.created_at,
       oi.id AS item_id,
       oi.product_id,
@@ -91,6 +93,7 @@ exports.getOrderById = (orderId, userId, callback) => {
       payment_status: results[0].payment_status,
       payment_type: results[0].payment_type,
       shipping_address_id: results[0].shipping_address_id,
+      buyer_note: results[0].buyer_note,
       created_at: results[0].created_at,
       items: results.map(r => ({
         item_id: r.item_id,
@@ -153,6 +156,7 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
           payment_status: row.payment_status,
           payment_type: row.payment_type,
           shipping_address_id: row.shipping_address_id,
+          buyer_note: results[0].buyer_note,
           seller_id: row.seller_id,
           created_at: row.created_at,
           items: []
