@@ -9,6 +9,7 @@ const adminRoutes = require('./routes/adminPanelRoutes');
 const favouriteRoutes = require('./routes/favouriteRoutes');
 const userAddress = require('./routes/userAddressesRoutes');
 const orders = require('./routes/orderRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const webhookHandler = require('./utils/webhook');
 
 
@@ -26,5 +27,6 @@ app.use('/api/webhook', webhookHandler);
 app.use('/api/favourites', favouriteRoutes);
 app.use('/api/useraddress', userAddress);
 app.use('/api/order', orders);
+app.use('/api/payments', paymentRoutes);
 
 module.exports = app;
