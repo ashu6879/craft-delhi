@@ -4,50 +4,79 @@ const authorizeAction = require('../utils/authorizeAction');
 // ✅ Create Order
 exports.createOrder = (req, res) => {
   const userId = req.user?.id;
-  const { total_amount, order_status, payment_status, payment_type, shipping_address_id, items, buyer_note } = req.body;
-
+  const {
+    total_amount,
+    order_status,
+    payment_status,
+    payment_type,
+    payment_method,
+    shipping_address_id,
+    items,
+    buyer_note
+  } = req.body;
+  // 🧾 Validation
   if (!userId) {
-    return res.status(401).json({ status: false, message: 'Unauthorized: User ID not found' });
+    return res.status(401).json({ status: false, message: "Unauthorized: User ID not found" });
   }
 
-  if (!total_amount || !payment_type || !shipping_address_id || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ status: false, message: 'Missing required fields' });
+  if (
+    total_amount == null ||
+    payment_type == null ||
+    payment_status == null ||
+    shipping_address_id == null ||
+    !Array.isArray(items) ||
+    items.length === 0
+  ) {
+    return res.status(400).json({ status: false, message: "Missing required fields" });
   }
+
+  // ✅ Generate UIDs
+  const order_uid = `ORD${Date.now()}`;
+  const payment_uid = `PAY${Math.floor(1000 + Math.random() * 9000)}`; // e.g. PAY1234
 
   // ✅ Get seller_id from first item
   const seller_id = items[0].seller_id;
 
-  const order_uid = `ORD${Date.now()}`; // Example: ORD1694712345678
-
-  // Step 1: Insert order
+  // ✅ Create order and payment in model
   Order.createOrder(
     userId,
-    { order_uid, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id, buyer_note }, // ✅ add seller_id here
+    {
+      order_uid,
+      total_amount,
+      order_status,
+      payment_status,
+      payment_type,
+      payment_method,
+      payment_uid,
+      shipping_address_id,
+      seller_id,
+      buyer_note
+    },
     (err, orderResult) => {
       if (err) {
-        console.error('Order Insert Error:', err);
-        return res.status(500).json({ status: false, message: 'Server error' });
+        console.error("Order Creation Error:", err);
+        return res.status(500).json({ status: false, message: "Failed to create order" });
       }
 
-      const orderId = orderResult.insertId;
+      const orderId = orderResult.order_id;
 
-      // Step 2: Insert order items
-      Order.createOrderItems(orderId, items, (err) => {
-        if (err) {
-          console.error('Order Items Insert Error:', err);
-          return res.status(500).json({ status: false, message: 'Failed to insert order items' });
+      // ✅ Insert order items
+      Order.createOrderItems(orderId, items, (itemErr) => {
+        if (itemErr) {
+          console.error("Order Items Error:", itemErr);
+          return res.status(500).json({ status: false, message: "Failed to insert order items" });
         }
 
-        // Step 3: Fetch order with items
-        Order.getOrderById(orderId, userId, (err, newOrder) => {
-          if (err) {
-            console.error('Fetch Error:', err);
-            return res.status(500).json({ status: false, message: 'Failed to fetch order' });
+        // ✅ Fetch full order details after creation
+        Order.getOrderById(orderId, userId, (fetchErr, newOrder) => {
+          if (fetchErr) {
+            console.error("Fetch Error:", fetchErr);
+            return res.status(500).json({ status: false, message: "Failed to fetch order" });
           }
 
           return res.status(201).json({
             status: true,
-            message: 'Order created successfully',
+            message: "Order and payment created successfully",
             data: newOrder
           });
         });

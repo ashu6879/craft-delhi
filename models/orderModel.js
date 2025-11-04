@@ -1,34 +1,51 @@
 const db = require('../config/db');
-
+const Payment = require('./paymentModel');
 // ✅ Create a new order
 exports.createOrder = (userId, data, callback) => {
   const {
     order_uid,
     total_amount,
     order_status,
-    payment_status,
+    payment_status,  // numeric: 0, 1, 2, or 4
     payment_type,
+    payment_method,
+    payment_uid,
     shipping_address_id,
     seller_id,
-    buyer_note // ✅ added seller_id
+    buyer_note,
   } = data;
 
-  const query = `
+  const orderQuery = `
     INSERT INTO order_details 
-      (order_uid, user_id, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id, buyer_note)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (order_uid, user_id, total_amount, order_status, shipping_address_id, seller_id, buyer_note)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
-    query,
-    [order_uid, userId, total_amount, order_status, payment_status, payment_type, shipping_address_id, seller_id, buyer_note],
-    (err, result) => {
+    orderQuery,
+    [order_uid, userId, total_amount, order_status, shipping_address_id, seller_id, buyer_note],
+    (err, orderResult) => {
       if (err) return callback(err, null);
-      callback(null, result);
+
+      const orderId = orderResult.insertId;
+
+      // Call payment model instead of direct query
+      Payment.createPayment(
+        orderId,
+        { payment_uid, payment_type, payment_status, payment_method },
+        (paymentErr, paymentResult) => {
+          if (paymentErr) return callback(paymentErr, null);
+
+          callback(null, {
+            message: "Order and payment created successfully",
+            order_id: orderId,
+            payment_id: paymentResult.insertId,
+          });
+        }
+      );
     }
   );
 };
-
 
 // ✅ Insert multiple order items
 exports.createOrderItems = (orderId, items, callback) => {
@@ -64,8 +81,6 @@ exports.getOrderById = (orderId, userId, callback) => {
       od.user_id,
       od.total_amount,
       od.order_status,
-      od.payment_status,
-      od.payment_type,
       od.shipping_address_id,
       od.buyer_note,
       od.created_at,
@@ -73,9 +88,14 @@ exports.getOrderById = (orderId, userId, callback) => {
       oi.product_id,
       oi.quantity,
       oi.price,
-      oi.subtotal
+      oi.subtotal,
+      pay.payment_uid,
+      pay.payment_type,
+      pay.payment_status,
+      pay.payment_method
     FROM order_details od
     LEFT JOIN order_items oi ON oi.order_id = od.id
+    LEFT JOIN payments pay ON pay.order_id = od.id
     WHERE od.id = ? AND od.user_id = ?
   `;
 
@@ -91,6 +111,8 @@ exports.getOrderById = (orderId, userId, callback) => {
       total_amount: results[0].total_amount,
       order_status: results[0].order_status,
       payment_status: results[0].payment_status,
+      payment_method: results[0].payment_method,
+      payment_uid: results[0].payment_uid,
       payment_type: results[0].payment_type,
       shipping_address_id: results[0].shipping_address_id,
       buyer_note: results[0].buyer_note,
@@ -116,8 +138,10 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
       od.user_id,
       od.total_amount,
       od.order_status,
-      od.payment_status,
-      od.payment_type,
+      pay.payment_uid,
+      pay.payment_type,
+      pay.payment_status,
+      pay.payment_method,
       od.shipping_address_id,
       od.buyer_note,
       od.seller_id,
@@ -140,6 +164,7 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
     LEFT JOIN users u ON u.id = od.user_id
     LEFT JOIN products p ON p.id = oi.product_id
     LEFT JOIN user_addresses ua ON ua.id = od.shipping_address_id
+    LEFT JOIN payments pay ON pay.order_id = od.id
     WHERE od.seller_id = ?
     ORDER BY od.created_at DESC
   `;
@@ -160,8 +185,10 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
           buyer_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
           total_amount: row.total_amount,
           order_status: row.order_status,
-          payment_status: row.payment_status,
-          payment_type: row.payment_type,
+          payment_status: results[0].payment_status,
+          payment_method: results[0].payment_method,
+          payment_uid: results[0].payment_uid,
+          payment_type: results[0].payment_type,
           shipping_address_id: row.shipping_address_id,
           shipping_info: `${row.street || ''} ${row.city || ''} ${row.state || ''} ${row.country || ''} ${row.postal_code || ''}`.trim(),
           buyer_note: results[0].buyer_note,
