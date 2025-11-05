@@ -40,11 +40,11 @@ exports.getselleryPaymentHistory = (req, res) => {
   Payment.getpaymentHistorybySellerID (seller_id, (err, paymentHistory) => {
     if (err) {
       console.error('Fetch Recent Orders Error:', err);
-      return res.status(500).json({ status: false, message: 'Failed to fetch recent orders' });
+      return res.status(500).json({ status: false, message: 'Failed to fetch  Payment history ' });
     }
 
     if (!paymentHistory || paymentHistory.length === 0) {
-      return res.status(404).json({ status: false, message: 'No recent orders found' });
+      return res.status(404).json({ status: false, message: 'No Payment history  found' });
     }
 
     return res.status(200).json({
