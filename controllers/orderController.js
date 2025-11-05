@@ -183,3 +183,31 @@ async function updateOrderStatusOnly(order_id, order_status, res) {
   }
 }
 
+exports.getsellerOrderSummary = (req, res) => {
+  const sellerId = req.user?.id;
+
+  if (req.user.role !== 2) {
+    return res.status(403).json({ status: false, message: 'Only sellers can access store details.' });
+  }
+
+  if (!sellerId || isNaN(sellerId)) {
+    return res.status(400).json({ status: false, message: 'Invalid seller ID' });
+  }
+
+  Order.getOrderSummary(sellerId, (err, order) => {
+    if (err) {
+      console.error('MySQL error:', err);
+      return res.status(500).json({ status: false, message: 'Internal server error' });
+    }
+
+    if (!order) {
+      return res.status(404).json({ status: false, message: 'order summary not found for this seller' });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'Order summary fetched successfully.',
+      order
+    });
+  });
+};

@@ -171,6 +171,8 @@ exports.getSaleSummary = (sellerId, callback) => {
   const sql = `
     SELECT 
       (SELECT COUNT(*) FROM order_details WHERE seller_id = ?) AS total_orders,
+      (SELECT COUNT(*) FROM order_details WHERE seller_id = ? AND order_status = 2) AS total_shipped_orders,
+      (SELECT COUNT(*) FROM order_details WHERE seller_id = ? AND order_status = 3) AS total_delivered_orders,
       (SELECT COUNT(*) FROM order_details WHERE seller_id = ? AND order_status = 0) AS total_pending_orders,
       (SELECT COUNT(*) FROM order_details WHERE seller_id = ? AND order_status = 4) AS total_cancelled_orders
   `;
