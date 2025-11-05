@@ -228,7 +228,7 @@ exports.sellerProductsViewbyID = (req, res) => {
     return res.status(403).json({ success: false, message: 'seller id or product id not found' });
   }
 
-  SellerStore.getAllProductsForSeller(seller_id,product_id,(err, result) => {
+  SellerStore.getAllProductsForSellerbyID(seller_id,product_id,(err, result) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Failed to fetch products', error: err });
     }
