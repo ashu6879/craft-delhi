@@ -204,3 +204,18 @@ exports.getsellerySaleSummary = (req, res) => {
     });
   });
 };
+
+exports.sellerProductsView = (req, res) => {
+  const seller_id = req.user.id;
+
+  if (!seller_id) {
+    return res.status(403).json({ success: false, message: 'seller id not found' });
+  }
+
+  SellerStore.getAllProductsForSeller(seller_id,(err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Failed to fetch products', error: err });
+    }
+    res.status(200).json({ success: true, data: result });
+  });
+};

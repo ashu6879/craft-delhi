@@ -14,8 +14,4 @@ order_status (TINYINT):
 
 payment_status (TINYINT):
 
-0 = Pending
-
-1 = Paid
-
-2 = Refund
+0 = Pending, 1 = Paid, 2 = Refunded, 4 = Failed	
