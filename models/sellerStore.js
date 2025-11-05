@@ -182,16 +182,7 @@ exports.getSaleSummary = (sellerId, callback) => {
 };
 exports.getAllProductsForSeller = (seller_id,callback) => {
   const sql = `
-    SELECT 
-      p.id, 
-      p.product_sku,
-      p.name AS product_name, 
-      p.admin_approval, 
-      p.main_image_url, 
-      p.price,
-      p.stock,
-      p.status,
-      p.description
+    SELECT p.*
     FROM products p where p.seller_id = ?
     ORDER BY p.created_at DESC
   `;
@@ -200,16 +191,7 @@ exports.getAllProductsForSeller = (seller_id,callback) => {
 
 exports.getAllProductsForSellerbyID = (seller_id,product_id,callback) => {
   const sql = `
-    SELECT 
-      p.id, 
-      p.product_sku,
-      p.name AS product_name, 
-      p.admin_approval, 
-      p.main_image_url, 
-      p.price,
-      p.stock,
-      p.status,
-      p.description
+    SELECT p.*
     FROM products p where p.seller_id = ? and p.id = ?
     ORDER BY p.created_at DESC
   `;
