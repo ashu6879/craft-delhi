@@ -177,7 +177,7 @@ exports.getSaleSummary = (sellerId, callback) => {
       (SELECT COUNT(*) FROM order_details WHERE seller_id = ? AND order_status = 4) AS total_cancelled_orders
   `;
 
-  db.query(sql, [sellerId, sellerId, sellerId], (err, results) => {  // ✅ fix here
+  db.query(sql, [sellerId, sellerId, sellerId, sellerId, sellerId], (err, results) => {  // ✅ fix here
     if (err) return callback(err);
     callback(null, results[0]);
   });
