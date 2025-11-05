@@ -181,7 +181,7 @@ exports.getSaleSummary = (sellerId, callback) => {
   });
 };
 
-exports.getAllProductsForSeller = (seller_id,callback) => {
+exports.getAllProductsForSeller = (seller_id,product_id,callback) => {
   const sql = `
     SELECT 
       p.id, 
@@ -193,8 +193,8 @@ exports.getAllProductsForSeller = (seller_id,callback) => {
       p.stock,
       p.status,
       p.description
-    FROM products p where p.seller_id = ?
+    FROM products p where p.seller_id = ? and p.id = ?
     ORDER BY p.created_at DESC
   `;
-  db.query(sql,seller_id, callback);
+  db.query(sql,[seller_id,product_id], callback);
 };

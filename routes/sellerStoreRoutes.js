@@ -15,6 +15,7 @@ router.get('/getdetails',verifyTokenforactions, sellerStoreController.getStoreBy
 router.get('/link/:id',verifyTokenforactions, sellerStoreController.getStoreLinkBySellerId);
 router.get('/getsalesummary',verifyTokenforactions, sellerStoreController.getsellerySaleSummary);
 router.get('/products-view', verifyTokenforactions, sellerStoreController.sellerProductsView);
+router.get('/productbyid/:product_id', verifyTokenforactions, sellerStoreController.sellerProductsViewbyID);
 router.get('/:slug', sellerStoreController.getStoreBySlug);
 
 module.exports = router;

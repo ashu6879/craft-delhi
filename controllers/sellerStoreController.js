@@ -219,3 +219,19 @@ exports.sellerProductsView = (req, res) => {
     res.status(200).json({ success: true, data: result });
   });
 };
+
+exports.sellerProductsViewbyID = (req, res) => {
+  const product_id = req.params.product_id;
+  const seller_id = req.user.id;
+
+  if (!seller_id || !product_id) {
+    return res.status(403).json({ success: false, message: 'seller id or product id not found' });
+  }
+
+  SellerStore.getAllProductsForSeller(seller_id,product_id,(err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Failed to fetch products', error: err });
+    }
+    res.status(200).json({ success: true, data: result });
+  });
+};
