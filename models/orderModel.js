@@ -185,6 +185,8 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
           order_uid: row.order_uid,
           user_id: row.user_id,
           buyer_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+          phone_number: row.phone_number,
+          email: row.email,
           total_amount: row.total_amount,
           order_status: row.order_status,
           payment_status: results[0].payment_status,
