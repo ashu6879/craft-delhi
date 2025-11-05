@@ -153,6 +153,8 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
       oi.subtotal,
       u.first_name,
       u.last_name,
+      u.email,
+      u.phone_number,
       p.name AS product_name,
       ua.street,
       ua.city,
