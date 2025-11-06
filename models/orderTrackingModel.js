@@ -44,23 +44,22 @@ exports.getTrackingByOrderId = (order_id, callback) => {
 
 // Update tracking info
 exports.updateTracking = (id, data, callback) => {
-  const query = `
-    UPDATE order_tracking
-    SET tracking_company = ?, tracking_number = ?, tracking_link = ?, 
-        estimated_delivery_from = ?, estimated_delivery_to = ?, status = ?
-    WHERE id = ?
-  `;
-  db.query(
-    query,
-    [
-      data.tracking_company,
-      data.tracking_number,
-      data.tracking_link,
-      data.estimated_delivery_from,
-      data.estimated_delivery_to,
-      data.status,
-      id
-    ],
-    callback
-  );
+  // 🔹 Filter out undefined or null fields
+  const filteredData = Object.keys(data)
+    .filter(key => data[key] !== undefined && data[key] !== null)
+    .reduce((obj, key) => {
+      obj[key] = data[key];
+      return obj;
+    }, {});
+
+  if (Object.keys(filteredData).length === 0) {
+    return callback(new Error('No valid tracking fields to update'), null);
+  }
+
+  // 🔹 Build SQL dynamically
+  const fields = Object.keys(filteredData).map(key => `${key} = ?`).join(', ');
+  const values = Object.values(filteredData);
+  const sql = `UPDATE order_tracking SET ${fields} WHERE id = ?`;
+
+  db.query(sql, [...values, id], callback);
 };

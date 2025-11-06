@@ -1,6 +1,7 @@
 const orderTrackingModel = require('../models/orderTrackingModel');
 const Order = require('../models/orderModel'); // for ownership check
 const authorizeAction = require('../utils/authorizeAction');
+const {addTrackingAuthorized, updateTrackingAuthorized} = require('../utils/updateUtils');
 
 // Add tracking info (only order owner can add)
 exports.addTrackingInfo = (req, res) => {
@@ -40,28 +41,6 @@ exports.addTrackingInfo = (req, res) => {
     }
   );
 };
-
-// ✅ Helper for adding tracking info
-async function addTrackingAuthorized(order_id, trackingData, res) {
-  orderTrackingModel.checkTrackingExists(order_id, (checkErr, result) => {
-    if (checkErr) {
-      console.error('Error checking tracking info:', checkErr);
-      return res.status(500).json({ message: 'Server error while checking tracking info.' });
-    }
-
-    if (result.length > 0) {
-      return res.status(400).json({ message: 'Tracking info already exists for this order. Use update API.' });
-    }
-
-    orderTrackingModel.addTracking(trackingData, (err, result) => {
-      if (err) {
-        console.error('Error adding tracking info:', err);
-        return res.status(500).json({ message: 'Failed to add tracking info.' });
-      }
-      res.status(201).json({ message: 'Tracking info added successfully.', id: result.insertId });
-    });
-  });
-}
 
 // Get tracking info by order ID
 exports.getTrackingByOrder = (req, res) => {
@@ -118,14 +97,3 @@ exports.updateTrackingInfo = (req, res) => {
     }
   );
 };
-
-// ✅ Helper for updating tracking info
-async function updateTrackingAuthorized(id, data, res) {
-  orderTrackingModel.updateTracking(id, data, (err, result) => {
-    if (err) {
-      console.error('Error updating tracking info:', err);
-      return res.status(500).json({ message: 'Failed to update tracking info.' });
-    }
-    res.status(200).json({ message: 'Tracking info updated successfully.' });
-  });
-}

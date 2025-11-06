@@ -255,8 +255,46 @@ exports.getOrderByIDforVerification = (order_id, callback) => {
 };
 
 exports.updateOrderByID = (order_id, data, callback) => {
-  const fields = Object.keys(data).map(key => `${key} = ?`).join(', ');
-  const values = Object.values(data);
+  if (!order_id || !data || Object.keys(data).length === 0) {
+    return callback(new Error('Invalid update data or order_id'), null);
+  }
+
+  // 🧱 Whitelisted fields that can be updated
+  const allowedFields = [
+    'order_status',
+    'total_amount',
+    'buyer_note',
+    'payment_status',
+    'payment_method',
+    'payment_type',
+    'shipping_address_id'
+  ];
+
+  // 🧩 Filter only allowed keys
+  const filteredData = Object.keys(data)
+    .filter(key => allowedFields.includes(key))
+    .reduce((obj, key) => {
+      obj[key] = data[key];
+      return obj;
+    }, {});
+
+  if (Object.keys(filteredData).length === 0) {
+    return callback(new Error('No valid fields to update'), null);
+  }
+
+  // 🔧 Build dynamic SQL query
+  const fields = Object.keys(filteredData).map(key => `${key} = ?`).join(', ');
+  const values = Object.values(filteredData);
+
   const sql = `UPDATE order_details SET ${fields} WHERE id = ?`;
-  db.query(sql, [...values, order_id], callback);
+
+  db.query(sql, [...values, order_id], (err, result) => {
+    if (err) {
+      console.error('Error executing order update query:', err);
+      return callback(err, null);
+    }
+    callback(null, result);
+  });
 };
+
+

@@ -1,5 +1,8 @@
 const Order = require('../models/orderModel');
 const authorizeAction = require('../utils/authorizeAction');
+const OrderTracking = require('../models/orderTrackingModel');
+const {handleOrderAndTrackingUpdate, updateOrderStatusOnly} = require('../utils/updateUtils');
+
 
 // ✅ Create Order
 exports.createOrder = (req, res) => {
@@ -152,37 +155,6 @@ exports.updateOrderStatus = (req, res) => {
   );
 };
 
-// ✅ Helper Function
-async function updateOrderStatusOnly(order_id, order_status, res) {
-  try {
-    Order.updateOrderByID(
-      order_id,
-      { order_status },
-      (err, result) => {
-        if (err) {
-          console.error('DB update error:', err);
-          return res.status(500).json({ status: false, message: 'Error updating order status' });
-        }
-
-        if (result.affectedRows > 0) {
-          return res.status(200).json({
-            status: true,
-            message: 'Order status updated successfully'
-          });
-        } else {
-          return res.status(400).json({
-            status: false,
-            message: 'No order updated (possibly same status)'
-          });
-        }
-      }
-    );
-  } catch (error) {
-    console.error('Status update error:', error);
-    return res.status(500).json({ status: false, message: 'Error updating order status' });
-  }
-}
-
 exports.getsellerOrderSummary = (req, res) => {
   const sellerId = req.user?.id;
 
@@ -210,4 +182,75 @@ exports.getsellerOrderSummary = (req, res) => {
       order
     });
   });
+};
+
+exports.updateOrderDetails = (req, res) => {
+  const { order_id } = req.params;
+  const userId = req.user?.id;
+  const roleId = req.user?.role;
+
+  if (!order_id) {
+    return res.status(400).json({ status: false, message: 'Order ID is required' });
+  }
+
+  // Extract all fields from request body
+  const {
+    order_status,
+    total_amount,
+    buyer_note,
+    payment_status,
+    payment_method,
+    payment_type,
+    shipping_address_id,
+    tracking_company,
+    tracking_number,
+    tracking_link,
+    estimated_delivery_from,
+    estimated_delivery_to,
+    tracking_status
+  } = req.body;
+
+  // Prepare order data
+  const orderData = {};
+  if (order_status !== undefined) orderData.order_status = order_status;
+  if (total_amount !== undefined) orderData.total_amount = total_amount;
+  if (buyer_note !== undefined) orderData.buyer_note = buyer_note;
+  if (payment_status !== undefined) orderData.payment_status = payment_status;
+  if (payment_method !== undefined) orderData.payment_method = payment_method;
+  if (payment_type !== undefined) orderData.payment_type = payment_type;
+  if (shipping_address_id !== undefined) orderData.shipping_address_id = shipping_address_id;
+
+  // Prepare tracking data
+  const trackingData = {};
+  if (order_id !== undefined) trackingData.order_id = order_id;
+  if (tracking_company !== undefined) trackingData.tracking_company = tracking_company;
+  if (tracking_number !== undefined) trackingData.tracking_number = tracking_number;
+  if (tracking_link !== undefined) trackingData.tracking_link = tracking_link;
+  if (estimated_delivery_from !== undefined) trackingData.estimated_delivery_from = estimated_delivery_from;
+  if (estimated_delivery_to !== undefined) trackingData.estimated_delivery_to = estimated_delivery_to;
+  if (tracking_status !== undefined) trackingData.status = tracking_status;
+
+  // Admin can update any order
+  if (roleId === parseInt(process.env.Admin_role_id)) {
+    return Order.getOrderByIDforVerification(order_id, async (err, existingOrder) => {
+      if (err || !existingOrder) {
+        return res.status(404).json({ status: false, message: 'Order not found' });
+      }
+      await handleOrderAndTrackingUpdate(order_id, orderData, trackingData, res);
+    });
+  }
+
+  // Seller can update only own order
+  authorizeAction(
+    Order,
+    order_id,
+    userId,
+    { getMethod: 'getOrderByIDforVerification', ownerField: 'seller_id' },
+    async (authError, existingOrder) => {
+      if (authError) {
+        return res.status(authError.code).json({ status: false, message: authError.message });
+      }
+      await handleOrderAndTrackingUpdate(order_id, orderData, trackingData, res);
+    }
+  );
 };
