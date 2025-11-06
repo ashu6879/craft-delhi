@@ -11,6 +11,8 @@ const userAddress = require('./routes/userAddressesRoutes');
 const orders = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const webhookHandler = require('./utils/webhook');
+const orderTrackingRoutes = require('./routes/orderTrackingRoutes');
+
 
 
 const app = express();
@@ -28,5 +30,6 @@ app.use('/api/favourites', favouriteRoutes);
 app.use('/api/useraddress', userAddress);
 app.use('/api/order', orders);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/order-tracking', orderTrackingRoutes);
 
 module.exports = app;

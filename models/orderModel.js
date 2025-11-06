@@ -160,13 +160,22 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
       ua.city,
       ua.state,
       ua.country,
-      ua.postal_code
+      ua.postal_code,
+      -- 🟢 Tracking columns
+      ot.id AS tracking_id,
+      ot.tracking_company,
+      ot.tracking_number,
+      ot.tracking_link,
+      ot.estimated_delivery_from,
+      ot.estimated_delivery_to,
+      ot.status AS tracking_status
     FROM order_details od
     LEFT JOIN order_items oi ON oi.order_id = od.id
     LEFT JOIN users u ON u.id = od.user_id
     LEFT JOIN products p ON p.id = oi.product_id
     LEFT JOIN user_addresses ua ON ua.id = od.shipping_address_id
     LEFT JOIN payments pay ON pay.order_id = od.id
+    LEFT JOIN order_tracking ot ON ot.order_id = od.id
     WHERE od.seller_id = ?
     ORDER BY od.created_at DESC
   `;
@@ -175,12 +184,13 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
     if (err) return callback(err, null);
     if (!results.length) return callback(null, []);
 
-    // ✅ Group items under each order
     const ordersMap = {};
 
     results.forEach(row => {
       if (!ordersMap[row.order_id]) {
-        ordersMap[row.order_id] = {
+        const hasTracking = !!row.tracking_id;
+
+        const orderData = {
           order_id: row.order_id,
           order_uid: row.order_uid,
           user_id: row.user_id,
@@ -189,17 +199,33 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
           email: row.email,
           total_amount: row.total_amount,
           order_status: row.order_status,
-          payment_status: results[0].payment_status,
-          payment_method: results[0].payment_method,
-          payment_uid: results[0].payment_uid,
-          payment_type: results[0].payment_type,
+          payment_status: row.payment_status,
+          payment_method: row.payment_method,
+          payment_uid: row.payment_uid,
+          payment_type: row.payment_type,
           shipping_address_id: row.shipping_address_id,
           shipping_info: `${row.street || ''} ${row.city || ''} ${row.state || ''} ${row.country || ''} ${row.postal_code || ''}`.trim(),
-          buyer_note: results[0].buyer_note,
+          buyer_note: row.buyer_note,
           seller_id: row.seller_id,
           created_at: row.created_at,
-          items: []
+          items: [],
+          tracking_info: hasTracking
         };
+
+        // 🟢 Only add tracking_details when exists
+        if (hasTracking) {
+          orderData.tracking_details = {
+            tracking_id: row.tracking_id,
+            tracking_company: row.tracking_company,
+            tracking_number: row.tracking_number,
+            tracking_link: row.tracking_link,
+            estimated_delivery_from: row.estimated_delivery_from,
+            estimated_delivery_to: row.estimated_delivery_to,
+            tracking_status: row.tracking_status
+          };
+        }
+
+        ordersMap[row.order_id] = orderData;
       }
 
       if (row.item_id) {
@@ -218,6 +244,7 @@ exports.getrecentOrdersbySellerID = (sellerId, callback) => {
     callback(null, orders);
   });
 };
+
 
 exports.getOrderByIDforVerification = (order_id, callback) => {
   const sql = `SELECT id, seller_id FROM order_details WHERE id = ?`;
