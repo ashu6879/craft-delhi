@@ -17,7 +17,7 @@ exports.getDashboardStats = (callback) => {
 
 exports.getTotalusers = (callback) => {
   const sql = `
-    SELECT first_name, last_name, role, user_status, email, phone_number
+    SELECT id AS user_id,account_trashed,first_name, last_name, role, user_status, email, phone_number
     FROM users
   `;
 
