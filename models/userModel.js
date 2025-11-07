@@ -79,9 +79,6 @@ exports.tempApproval = (email,status, callback) => {
 };
 
 exports.makeAccountTrash = (id, callback) => {
-  db.query(
-    'UPDATE users SET account_trashed = 1 WHERE id = ?',
-    [id],
-    callback
-  );
+  const sql = 'UPDATE users SET account_trashed = 1, user_status = 0 WHERE id = ?';
+  db.query(sql, [id], callback);
 };
