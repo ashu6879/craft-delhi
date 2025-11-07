@@ -107,6 +107,7 @@ exports.getAllBuyersForAdmin = (callback) => {
       u.email, 
       u.phone_number, 
       u.date_of_birth,
+      u.user_status,
       ud.city,
       ud.profile_image
     FROM users u
