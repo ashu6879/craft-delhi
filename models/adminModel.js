@@ -425,3 +425,75 @@ exports.deleteOrderbyAdmin = (order_id, callback) => {
     db.query(deleteOrderSql, [order_id], callback);
   });
 };
+
+exports.getRevenueStats = (callback) => {
+  const sql = `
+    SELECT 
+      (SELECT SUM(total_amount) FROM order_details) AS total_revenue,
+      (SELECT SUM(total_amount) 
+       FROM order_details 
+       WHERE MONTH(created_at) = MONTH(CURRENT_DATE())
+       AND YEAR(created_at) = YEAR(CURRENT_DATE())
+      ) AS current_month_revenue
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return callback(err);
+    callback(null, results[0]);
+  });
+};
+
+
+exports.getRevenueDetailsForAdmin = (year, month, callback) => {
+  let sql = `
+    SELECT 
+      u.id AS seller_id,
+      u.first_name,
+      u.last_name,
+      YEAR(od.created_at) AS year,
+      SUM(od.total_amount) AS total_revenue
+  `;
+
+  // If month is provided, include it
+  if (month) {
+    sql += `,
+      MONTH(od.created_at) AS month
+    `;
+  }
+
+  sql += `
+    FROM order_details od
+    LEFT JOIN users u ON u.id = od.seller_id
+    WHERE YEAR(od.created_at) = ?
+  `;
+
+  // Add month filter if specified
+  const params = [year || new Date().getFullYear()];
+  if (month) {
+    sql += ` AND MONTH(od.created_at) = ?`;
+    params.push(month);
+  }
+
+  // Grouping logic
+  sql += month
+    ? ` GROUP BY u.id, YEAR(od.created_at), MONTH(od.created_at)`
+    : ` GROUP BY u.id, YEAR(od.created_at)`;
+
+  sql += ` ORDER BY YEAR(od.created_at) DESC`;
+
+  if (month) sql += `, MONTH(od.created_at) DESC`;
+
+  db.query(sql, params, (err, results) => {
+    if (err) return callback(err);
+
+    const orders = results.map(row => ({
+      seller_id: row.seller_id,
+      seller_name: `${row.first_name} ${row.last_name}`,
+      year: row.year,
+      ...(month && { month: row.month }),
+      total_revenue: row.total_revenue
+    }));
+
+    callback(null, orders);
+  });
+};

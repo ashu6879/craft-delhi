@@ -367,3 +367,51 @@ exports.deleteOrderbyAdmin = (req, res) => {
   });
 };
 
+exports.getRevenueStats = (req, res) => {
+  const role = req.user.role;
+    if (role != process.env.Admin_role_id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    adminModel.getRevenueStats((err, stats) => {
+      if (err) return res.status(500).json({ status: false, error: err });
+      res.json({ status: true, data: stats });
+    });
+};
+
+exports.adminRevenueView = (req, res) => {
+  const role = req.user.role;
+
+  // Check admin authorization
+  if (role != process.env.Admin_role_id) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+
+  // Get query parameters (optional)
+  const { year, month } = req.query;
+
+  // Default year = current year
+  const selectedYear = year || new Date().getFullYear();
+  const selectedMonth = month ? parseInt(month) : null;
+
+  // Call model function with year & month
+  adminModel.getRevenueDetailsForAdmin(selectedYear, selectedMonth, (err, result) => {
+    if (err) {
+      console.error('Error fetching revenue details:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch revenue details',
+        error: err,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      type: selectedMonth ? 'monthly' : 'yearly',
+      year: selectedYear,
+      ...(selectedMonth && { month: selectedMonth }),
+      total_records: result.length,
+      data: result,
+    });
+  });
+};
+
