@@ -12,27 +12,31 @@ const orderTrackingModel = require('../models/orderTrackingModel');
 
 exports.handleOrderAndTrackingUpdate = async (order_id, orderData, trackingData, res) => {
   try {
-    // Step 1️⃣ — Update order details
-    await new Promise((resolve, reject) => {
-      Order.updateOrderByID(order_id, orderData, (err, result) => {
-        if (err) {
-          console.error('❌ Order update error:', err);
-          return reject('Error updating order details');
-        }
-        resolve(result);
-      });
-    });
-
-    // Step 2️⃣ — Add or update tracking info (only if any tracking field is provided)
-    if (
+    const hasOrderFields = Object.keys(orderData || {}).length > 0;
+    const hasTrackingFields =
       trackingData.tracking_company ||
       trackingData.tracking_number ||
       trackingData.tracking_link ||
       trackingData.estimated_delivery_from ||
       trackingData.estimated_delivery_to ||
-      trackingData.status !== undefined
-    ) {
-      // 🔹 Build partial tracking update (ignore undefined fields)
+      trackingData.status !== undefined;
+
+    // 🧱 Step 1️⃣ — Update order details (only if orderData has valid fields)
+    if (hasOrderFields) {
+      await new Promise((resolve, reject) => {
+        Order.updateOrderByID(order_id, orderData, (err, result) => {
+          if (err) {
+            console.error('❌ Order update error:', err);
+            return reject('Error updating order details');
+          }
+          resolve(result);
+        });
+      });
+    }
+
+    // 🧭 Step 2️⃣ — Add or update tracking info (only if tracking data provided)
+    if (hasTrackingFields) {
+      // 🔹 Filter out undefined/null tracking fields
       const validTrackingData = {};
       Object.keys(trackingData).forEach(key => {
         if (trackingData[key] !== undefined && trackingData[key] !== null) {
@@ -40,6 +44,7 @@ exports.handleOrderAndTrackingUpdate = async (order_id, orderData, trackingData,
         }
       });
 
+      // Check if tracking already exists
       orderTrackingModel.checkTrackingExists(order_id, (checkErr, result) => {
         if (checkErr) {
           console.error('❌ Tracking check error:', checkErr);
@@ -59,9 +64,13 @@ exports.handleOrderAndTrackingUpdate = async (order_id, orderData, trackingData,
                 message: 'Error updating tracking info',
               });
             }
+
+            // ✅ Conditional response
             return res.status(200).json({
               status: true,
-              message: 'Order and tracking details updated successfully',
+              message: hasOrderFields
+                ? 'Order and tracking details updated successfully'
+                : 'Tracking details updated successfully',
             });
           });
         } else {
@@ -74,18 +83,28 @@ exports.handleOrderAndTrackingUpdate = async (order_id, orderData, trackingData,
                 message: 'Error adding tracking info',
               });
             }
+
+            // ✅ Conditional response
             return res.status(200).json({
               status: true,
-              message: 'Order details updated and tracking added successfully',
+              message: hasOrderFields
+                ? 'Order details updated and tracking added successfully'
+                : 'Tracking details added successfully',
             });
           });
         }
       });
-    } else {
+    } else if (hasOrderFields) {
       // ✅ Only order updated
       return res.status(200).json({
         status: true,
         message: 'Order details updated successfully',
+      });
+    } else {
+      // 🚫 Nothing to update
+      return res.status(400).json({
+        status: false,
+        message: 'No valid data provided to update',
       });
     }
   } catch (error) {
@@ -96,6 +115,7 @@ exports.handleOrderAndTrackingUpdate = async (order_id, orderData, trackingData,
     });
   }
 };
+
 
 
 exports.updateOrderStatusOnly = async (order_id, order_status, res) => {
