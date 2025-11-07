@@ -15,6 +15,28 @@ exports.getDashboardStats = (callback) => {
   });
 };
 
+exports.getTotalusers = (callback) => {
+  const sql = `
+    SELECT first_name, last_name, role, user_status, email, phone_number
+    FROM users
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return callback(err);
+
+    // Convert numeric roles into human-readable text
+    const updatedResults = results.map(user => {
+      return {
+        ...user,
+        role: user.role == 2 ? "seller" : "buyer",
+      };
+    });
+
+    callback(null, updatedResults);
+  });
+};
+
+
 // adminModel.js
 exports.getAllProductsForAdmin = (callback) => {
   const sql = `

@@ -6,6 +6,7 @@ const { upload } = require('../utils/s3Uploader');
 const productController = require('../controllers/productController');
 
 router.get('/dashboard-stats', verifyTokenforactions,  adminController.getDashboardStats);
+router.get('/total-users', verifyTokenforactions,  adminController.getTotalusers);
 
 router.get('/products-view', verifyTokenforactions, adminController.adminProductsView);
 router.post('/update-product-approval', verifyTokenforactions, adminController.updateApprovalStatus);
