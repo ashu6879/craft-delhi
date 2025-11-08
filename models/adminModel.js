@@ -1,4 +1,5 @@
 const db = require('../config/db'); // adjust path to your MySQL connection
+const {runQuery} = require('../utils/updateUtils');
 
 exports.getDashboardStats = (callback) => {
   const sql = `
@@ -108,14 +109,85 @@ exports.getAllBuyersForAdmin = (callback) => {
       u.phone_number, 
       u.date_of_birth,
       u.user_status,
-      ud.city,
-      ud.profile_image
+      u.gender,
+      ua.city,
+      ua.street,
+      ua.state,
+      ua.country,
+      ua.postal_code
     FROM users u
-    LEFT JOIN seller_details ud ON ud.user_id = u.id
+    LEFT JOIN user_addresses ua ON ua.user_id = u.id
     where u.role = 3
     ORDER BY u.created_at DESC
   `;
   db.query(sql, callback);
+};
+
+exports.updateBuyerDetailsByAdmin = (user_id, data, callback) => {
+  db.getConnection((err, connection) => {
+    if (err) return callback(err);
+
+    connection.beginTransaction((err) => {
+      if (err) {
+        connection.release();
+        return callback(err);
+      }
+
+      const updatePromises = [];
+
+      // 1️⃣ Update `users` table
+      const userFields = [
+        "first_name",
+        "last_name",
+        "email",
+        "phone_number",
+        "date_of_birth",
+        "gender"
+      ];
+      const userUpdates = userFields.filter(f => data[f] !== undefined);
+      if (userUpdates.length) {
+        const sql = `UPDATE users SET ${userUpdates.map(f => `${f}=?`).join(", ")} WHERE id=? AND role=?`;
+        updatePromises.push(
+          runQuery(connection, sql, [...userUpdates.map(f => data[f]), user_id, process.env.Buyer_role_id])
+        );
+      }
+
+      // 2️⃣ Update `user_addresses` table (buyer’s shipping info)
+      const buyerShippingDetails = ["city", "street", "state", "country", "postal_code"];
+      const buyerDetailsUpdates = buyerShippingDetails.filter(f => data[f] !== undefined);
+      if (buyerDetailsUpdates.length) {
+        const sql = `UPDATE user_addresses SET ${buyerDetailsUpdates.map(f => `${f}=?`).join(", ")} WHERE user_id=?`;
+        updatePromises.push(
+          runQuery(connection, sql, [...buyerDetailsUpdates.map(f => data[f]), user_id])
+        );
+      }
+
+      // 🧠 If no updates, skip transaction
+      if (updatePromises.length === 0) {
+        connection.release();
+        return callback(null, { success: false, message: "No valid fields to update" });
+      }
+
+      // ✅ Run all queries in a transaction
+      Promise.all(updatePromises)
+        .then(() => {
+          connection.commit((err) => {
+            if (err) return rollback(err);
+            connection.release();
+            callback(null, { success: true });
+          });
+        })
+        .catch(rollback);
+
+      // 🔁 Rollback function
+      function rollback(error) {
+        connection.rollback(() => {
+          connection.release();
+          callback(error);
+        });
+      }
+    });
+  });
 };
 
 exports.getSellerStats = (callback) => {
@@ -186,7 +258,15 @@ exports.updateSellerDetailsByAdmin = (user_id, data, callback) => {
       const updatePromises = [];
 
       // 1️⃣ Update `users` table
-      const userFields = ["first_name", "last_name", "email", "phone_number", "date_of_birth", "gender", "user_approval"];
+      const userFields = [
+        "first_name",
+        "last_name",
+        "email",
+        "phone_number",
+        "date_of_birth",
+        "gender",
+        "user_approval"
+      ];
       const userUpdates = userFields.filter(f => data[f] !== undefined);
       if (userUpdates.length) {
         const sql = `UPDATE users SET ${userUpdates.map(f => `${f}=?`).join(", ")} WHERE id=? AND role=?`;
@@ -202,7 +282,14 @@ exports.updateSellerDetailsByAdmin = (user_id, data, callback) => {
       }
 
       // 3️⃣ Update `seller_stores` table
-      const storeFields = ["store_name", "store_link", "description", "store_created_date", "business_number", "store_image"];
+      const storeFields = [
+        "store_name",
+        "store_link",
+        "description",
+        "store_created_date",
+        "business_number",
+        "store_image"
+      ];
       const storeUpdates = storeFields.filter(f => data[f] !== undefined);
       if (storeUpdates.length) {
         const sql = `UPDATE seller_stores SET ${storeUpdates.map(f => `${f}=?`).join(", ")} WHERE seller_id=?`;
@@ -210,14 +297,24 @@ exports.updateSellerDetailsByAdmin = (user_id, data, callback) => {
       }
 
       // 4️⃣ Update `users_bank_details` table
-      const bankFields = ["bank_name", "branch_location", "account_holder_name", "account_number", "ifsc_code"];
+      const bankFields = [
+        "bank_name",
+        "branch_location",
+        "account_holder_name",
+        "account_number",
+        "ifsc_code"
+      ];
       const bankUpdates = bankFields.filter(f => data[f] !== undefined);
       if (bankUpdates.length) {
         const sql = `UPDATE users_bank_details SET ${bankUpdates.map(f => `${f}=?`).join(", ")} WHERE user_id=?`;
         updatePromises.push(runQuery(connection, sql, [...bankUpdates.map(f => data[f]), user_id]));
       }
 
-      // Run all queries
+      if (updatePromises.length === 0) {
+        connection.release();
+        return callback(null, { success: false, message: "No valid fields to update" });
+      }
+
       Promise.all(updatePromises)
         .then(() => {
           connection.commit((err) => {
@@ -237,16 +334,6 @@ exports.updateSellerDetailsByAdmin = (user_id, data, callback) => {
     });
   });
 };
-
-// Helper to wrap queries in a Promise
-function runQuery(connection, sql, params) {
-  return new Promise((resolve, reject) => {
-    connection.query(sql, params, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
-}
 
 exports.getSellerImages = (user_id, callback) => {
   const sql = `

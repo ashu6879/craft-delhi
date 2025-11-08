@@ -212,3 +212,12 @@ exports.updateTrackingAuthorized = async (id, data, res) => {
     res.status(200).json({ message: 'Tracking info updated successfully.' });
   });
 };
+
+exports.runQuery = (connection, sql, params) => {
+  return new Promise((resolve, reject) => {
+    connection.query(sql, params, (err, results) => {
+      if (err) return reject(err);
+      resolve(results);
+    });
+  });
+};

@@ -122,6 +122,27 @@ exports.adminBuyersView = (req, res) => {
   });
 };
 
+exports.updateBuyerbyAdmin = (req, res) => {
+  const role = req.user.role;
+  if (role != process.env.Admin_role_id) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+
+  const { user_id } = req.body;
+  if (!user_id || isNaN(user_id)) {
+    return res.status(400).json({ success: false, message: 'Invalid User ID' });
+  }
+
+      // Build updateData dynamically
+      const updateData = { ...req.body };
+
+      // Call model to update only provided fields
+      adminModel.updateBuyerDetailsByAdmin(user_id, updateData, (err) => {
+        if (err) return res.status(500).json({ success: false, message: 'Failed to update Buyer details' });
+        res.status(200).json({ success: true, message: 'Buyer details updated successfully' });
+      });
+  }
+
 exports.getSellersStats = (req, res) => {
   const role = req.user.role;
     if (role != process.env.Admin_role_id) {

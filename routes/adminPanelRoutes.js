@@ -26,7 +26,7 @@ router.put(
 
 router.get('/buyer-stats', verifyTokenforactions,  adminController.getBuyerStats);
 router.get('/buyers-view', verifyTokenforactions, adminController.adminBuyersView);
-// router.post('/update-buyerbyadmin', verifyTokenforactions, adminController.updateBuyerbyAdmin);
+router.put('/update-buyerbyadmin',verifyTokenforactions,adminController.updateBuyerbyAdmin);
 
 router.get('/seller-stats', verifyTokenforactions,  adminController.getSellersStats);
 router.get('/seller-view', verifyTokenforactions, adminController.adminSellersView);
