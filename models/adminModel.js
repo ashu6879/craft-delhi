@@ -128,26 +128,14 @@ exports.updateBuyerStatus = (user_id, user_status, callback) => {
 };
 
 exports.updateBuyerDetailsByAdmin = (user_id, data, callback) => {
-  console.log("🔹 [Model] updateBuyerDetailsByAdmin called");
-  console.log("🧾 Buyer ID:", user_id);
-  console.log("📦 Data received for update:", data);
-
   db.getConnection((err, connection) => {
-    if (err) {
-      console.error("❌ Failed to get DB connection:", err.message);
-      return callback(err);
-    }
-
-    console.log("✅ Database connection established for buyer update");
+    if (err) return callback(err);
 
     connection.beginTransaction((err) => {
       if (err) {
-        console.error("❌ Failed to start transaction:", err.message);
         connection.release();
         return callback(err);
       }
-
-      console.log("🔁 Transaction started for updating buyer details");
 
       const updatePromises = [];
 
@@ -163,58 +151,41 @@ exports.updateBuyerDetailsByAdmin = (user_id, data, callback) => {
       const userUpdates = userFields.filter(f => data[f] !== undefined);
       if (userUpdates.length) {
         const sql = `UPDATE users SET ${userUpdates.map(f => `${f}=?`).join(", ")} WHERE id=? AND role=?`;
-        console.log("🧠 Preparing to update users table with fields:", userUpdates);
         updatePromises.push(
           runQuery(connection, sql, [...userUpdates.map(f => data[f]), user_id, process.env.Buyer_role_id])
         );
-      } else {
-        console.log("⚠️ No user table fields to update");
       }
 
-      // 2️⃣ Update `user_addresses` table
+      // 2️⃣ Update `user_addresses` table (buyer’s shipping info)
       const buyerShippingDetails = ["city", "street", "state", "country", "postal_code"];
       const buyerDetailsUpdates = buyerShippingDetails.filter(f => data[f] !== undefined);
       if (buyerDetailsUpdates.length) {
         const sql = `UPDATE user_addresses SET ${buyerDetailsUpdates.map(f => `${f}=?`).join(", ")} WHERE user_id=?`;
-        console.log("📍 Preparing to update user_addresses table with fields:", buyerDetailsUpdates);
         updatePromises.push(
           runQuery(connection, sql, [...buyerDetailsUpdates.map(f => data[f]), user_id])
         );
-      } else {
-        console.log("⚠️ No address fields to update");
       }
 
       // 🧠 If no updates, skip transaction
       if (updatePromises.length === 0) {
-        console.warn("⚠️ No valid fields found to update for buyer_id:", user_id);
         connection.release();
         return callback(null, { success: false, message: "No valid fields to update" });
       }
 
-      // ✅ Run all queries in transaction
+      // ✅ Run all queries in a transaction
       Promise.all(updatePromises)
         .then(() => {
-          console.log("✅ All update queries executed successfully");
           connection.commit((err) => {
-            if (err) {
-              console.error("❌ Commit failed, rolling back:", err.message);
-              return rollback(err);
-            }
-            console.log("💾 Transaction committed successfully for buyer_id:", user_id);
+            if (err) return rollback(err);
             connection.release();
             callback(null, { success: true });
           });
         })
-        .catch((error) => {
-          console.error("❌ Error during update queries:", error.message || error);
-          rollback(error);
-        });
+        .catch(rollback);
 
       // 🔁 Rollback function
       function rollback(error) {
-        console.log("🔄 Rolling back transaction due to error...");
         connection.rollback(() => {
-          console.error("❌ Transaction rolled back:", error.message || error);
           connection.release();
           callback(error);
         });
@@ -222,7 +193,6 @@ exports.updateBuyerDetailsByAdmin = (user_id, data, callback) => {
     });
   });
 };
-
 
 exports.getSellerStats = (callback) => {
   const sql = `
