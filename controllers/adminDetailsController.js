@@ -123,25 +123,48 @@ exports.adminBuyersView = (req, res) => {
 };
 
 exports.updateBuyerbyAdmin = (req, res) => {
+  console.log("🔹 [API] /api/admin/update-buyerbyadmin called");
+  console.log("📩 Request body:", req.body);
+  console.log("👤 Authenticated user:", req.user);
+
   const role = req.user.role;
+
+  // 1️⃣ Role Check
   if (role != process.env.Admin_role_id) {
+    console.warn("🚫 Unauthorized access attempt by user:", req.user.id);
     return res.status(403).json({ success: false, message: 'Unauthorized' });
   }
 
+  // 2️⃣ Validate user_id
   const { user_id } = req.body;
   if (!user_id || isNaN(user_id)) {
+    console.warn("⚠️ Invalid or missing user_id:", user_id);
     return res.status(400).json({ success: false, message: 'Invalid User ID' });
   }
 
-      // Build updateData dynamically
-      const updateData = { ...req.body };
+  // 3️⃣ Build dynamic update object
+  const updateData = { ...req.body };
+  console.log("🛠️ Data prepared for update:", updateData);
 
-      // Call model to update only provided fields
-      adminModel.updateBuyerDetailsByAdmin(user_id, updateData, (err) => {
-        if (err) return res.status(500).json({ success: false, message: 'Failed to update Buyer details' });
-        res.status(200).json({ success: true, message: 'Buyer details updated successfully' });
+  // 4️⃣ Call Model Function
+  adminModel.updateBuyerDetailsByAdmin(user_id, updateData, (err) => {
+    if (err) {
+      console.error("❌ Database error while updating buyer details:", err);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update Buyer details',
+        error: err.message || err
       });
-}
+    }
+
+    console.log("✅ Buyer details updated successfully for user_id:", user_id);
+    res.status(200).json({
+      success: true,
+      message: 'Buyer details updated successfully'
+    });
+  });
+};
+
 
 exports.updateBuyerStatus = (req, res) => {
   const role = req.user.role;
