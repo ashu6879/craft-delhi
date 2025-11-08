@@ -141,7 +141,24 @@ exports.updateBuyerbyAdmin = (req, res) => {
         if (err) return res.status(500).json({ success: false, message: 'Failed to update Buyer details' });
         res.status(200).json({ success: true, message: 'Buyer details updated successfully' });
       });
+}
+
+exports.updateBuyerStatus = (req, res) => {
+  const role = req.user.role;
+  if (role != process.env.Admin_role_id) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
   }
+
+  const { user_id, user_status } = req.body;
+
+  adminModel.updateBuyerStatus(user_id, user_status, (err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Failed to update status', error: err });
+    }
+
+    res.status(200).json({ success: true, message: 'Status updated successfully' });
+  });
+};
 
 exports.getSellersStats = (req, res) => {
   const role = req.user.role;

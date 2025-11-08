@@ -122,6 +122,10 @@ exports.getAllBuyersForAdmin = (callback) => {
   `;
   db.query(sql, callback);
 };
+exports.updateBuyerStatus = (user_id, user_status, callback) => {
+  const sql = `UPDATE users SET user_status = ? WHERE id = ?`;
+  db.query(sql, [user_status, user_id], callback);
+};
 
 exports.updateBuyerDetailsByAdmin = (user_id, data, callback) => {
   db.getConnection((err, connection) => {
