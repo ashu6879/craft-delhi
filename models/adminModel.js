@@ -123,9 +123,24 @@ exports.getAllBuyersForAdmin = (callback) => {
   db.query(sql, callback);
 };
 exports.updateBuyerStatus = (user_id, user_status, callback) => {
-  const sql = `UPDATE users SET user_status = ? WHERE id = ?`;
-  db.query(sql, [user_status, user_id], callback);
+  user_status = Number(user_status); // ensure it's numeric
+  let sql;
+  let values;
+
+  if (user_status === 0 || user_status === 1) {
+    sql = `UPDATE users SET user_status = ? WHERE id = ?`;
+    values = [user_status, user_id];
+  } else if (user_status === 2) {
+    sql = `UPDATE users SET account_trashed = 1 WHERE id = ?`;
+    values = [user_id];
+  } else {
+    return callback(new Error("Invalid user_status value"));
+  }
+
+  db.query(sql, values, callback);
 };
+
+
 
 exports.updateBuyerDetailsByAdmin = (user_id, data, callback) => {
   db.getConnection((err, connection) => {
