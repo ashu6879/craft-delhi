@@ -132,7 +132,7 @@ exports.updateBuyerStatus = (user_id, user_status, callback) => {
     sql = `UPDATE users SET user_status = ? WHERE id = ?`;
     values = [user_status, user_id];
   } else if (user_status === 2) {
-    sql = `UPDATE users SET user_status = 0, account_trashed = 1 WHERE id = ?`;
+    sql = `UPDATE users SET user_status = 2, account_trashed = 1 WHERE id = ?`;
     values = [user_id];
   } else {
     return callback(new Error("Invalid user_status value"));
