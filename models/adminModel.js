@@ -109,6 +109,7 @@ exports.getAllBuyersForAdmin = (callback) => {
       u.phone_number, 
       u.date_of_birth,
       u.user_status,
+      u.account_trashed,
       u.gender,
       ua.city,
       ua.street,
