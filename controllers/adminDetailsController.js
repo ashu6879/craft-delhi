@@ -2,6 +2,7 @@ const adminModel = require('../models/adminModel');
 require('dotenv').config();
 const { uploadToS3, getS3KeyFromUrl } = require('../utils/s3Uploader');
 const { deleteFilesFromS3 } = require('../utils/deleteFilesFromS3');
+const sendEmail = require('../utils/mailHelper'); // adjust path as per your project
 
 exports.getDashboardStats = (req, res) => {
   const role = req.user.role;
@@ -143,22 +144,76 @@ exports.updateBuyerbyAdmin = (req, res) => {
       });
 }
 
-exports.updateBuyerStatus = (req, res) => {
+exports.updateBuyerStatus = async (req, res) => {
   const role = req.user.role;
   if (role != process.env.Admin_role_id) {
     return res.status(403).json({ success: false, message: 'Unauthorized' });
   }
 
-  const { user_id, user_status } = req.body;
+  const { user_id, user_status, trash_reason, trash_description } = req.body;
 
-  adminModel.updateBuyerStatus(user_id, user_status, (err, result) => {
+  // Always update status FIRST
+  adminModel.updateBuyerStatus(user_id, user_status, async (err) => {
     if (err) {
-      return res.status(500).json({ success: false, message: 'Failed to update status', error: err });
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to update status", error: err });
     }
 
-    res.status(200).json({ success: true, message: 'Status updated successfully' });
+    // If account is trashed, send email
+    if (user_status == 2) {
+      adminModel.getUserEmail(user_id, async (err2, result) => {
+        if (err2) {
+          return res
+            .status(500)
+            .json({ success: false, message: "Failed to fetch user email", error: err2 });
+        }
+
+        const {email, first_name, last_name} = result;
+
+        if (email) {
+          try {
+            await sendEmail({
+              to: email,
+              subject: "Your Account Has Been Marked as Trashed",
+              title: "Account Trashed Notification",
+              message: `
+                Hello, ${first_name}${last_name}<br><br>
+                Your account has been marked as <b>Trashed</b> on Craft Delhi.<br><br>
+
+                <b>Reason:</b> ${trash_reason}<br>
+                <b>Description:</b> ${trash_description}<br><br>
+
+                If you believe this was a mistake or want to discuss further,<br>
+                please contact our support team.<br><br>
+
+                Regards,<br>
+                <b>Team Craft Delhi</b>
+              `,
+              text: `Your account has been trashed.\nReason: ${trash_reason}\nDescription: ${trash_description}`
+            });
+          } catch (error) {
+            console.log("Failed to send trashed email:", error);
+          }
+        }
+
+        // Send final response AFTER everything
+        return res.status(200).json({
+          success: true,
+          message: "Status updated & email sent (if applicable)",
+        });
+      });
+    } else {
+      // Normal flow → Only status update
+      return res.status(200).json({
+        success: true,
+        message: "Status updated successfully",
+      });
+    }
   });
 };
+
+
 
 exports.getSellersStats = (req, res) => {
   const role = req.user.role;

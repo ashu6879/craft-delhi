@@ -68,6 +68,17 @@ exports.getProductsStats = (callback) => {
   });
 };
 
+exports.getUserEmail = (user_id,callback) => {
+  const sql = `
+    SELECT email,first_name,last_name from users where id =?
+  `;
+
+  db.query(sql,user_id, (err, results) => {
+    if (err) return callback(err);
+    callback(null, results[0]);
+  });
+};
+
 exports.getTotalProducts = (callback) => {
   const sql = `
     SELECT * from products;
