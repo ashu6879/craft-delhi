@@ -296,26 +296,91 @@ exports.updateSellerbyAdmin = (req, res) => {
   });
 };
 
-exports.updateSellerStatus = (req, res) => {
+exports.updateSellerStatus = async (req, res) => {
   const role = req.user.role;
   if (role != process.env.Admin_role_id) {
-    return res.status(403).json({ success: false, message: 'Unauthorized' });
+    return res.status(403).json({ success: false, message: "Unauthorized" });
   }
 
-  const { seller_id, user_approval } = req.body;
+  const { seller_id, user_approval, reject_reason, reject_description } = req.body;
 
+  // Validate status (1 = Approve, 2 = Reject)
   if (![1, 2].includes(user_approval)) {
-    return res.status(400).json({ success: false, message: 'Invalid status. Use 1 (Approve) or 2 (Reject).' });
+    return res.status(400).json({
+      success: false,
+      message: "Invalid status. Use 1 (Approve) or 2 (Reject).",
+    });
   }
 
-  adminModel.updateSellerApprovalStatus(seller_id, user_approval, (err, result) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Failed to update status', error: err });
-    }
+  // Always update status FIRST
+  adminModel.updateSellerApprovalStatus(
+    seller_id,
+    user_approval,
+    async (err) => {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to update seller status",
+          error: err,
+        });
+      }
 
-    res.status(200).json({ success: true, message: 'Status updated successfully' });
-  });
+      // If seller is rejected → send email
+      if (user_approval === 2) {
+        adminModel.getUserEmail(seller_id, async (err2, result) => {
+          if (err2) {
+            return res.status(500).json({
+              success: false,
+              message: "Failed to fetch seller email",
+              error: err2,
+            });
+          }
+
+          const { email, first_name, last_name } = result;
+
+          if (email) {
+            try {
+              await sendEmail({
+                to: email,
+                subject: "Your Seller Account Has Been Rejected",
+                title: "Seller Account Rejected",
+                message: `
+                  Hello, ${first_name} ${last_name},<br><br>
+                  Your seller account has been <b>Rejected</b> on Craft Delhi.<br><br>
+
+                  <b>Reason:</b> ${reject_reason}<br>
+                  <b>Description:</b> ${reject_description}<br><br>
+
+                  If you think this decision was incorrect or want further clarity,<br>
+                  please contact our support team.<br><br>
+
+                  Regards,<br>
+                  <b>Team Craft Delhi</b>
+                `,
+                text: `Your seller account has been rejected.\nReason: ${reject_reason}\nDescription: ${reject_description}`,
+              });
+            } catch (emailError) {
+              console.log("Failed to send seller rejection email:", emailError);
+            }
+          }
+
+          // Final response after email attempts
+          return res.status(200).json({
+            success: true,
+            message: "Status updated & email sent (if applicable)",
+          });
+        });
+      } else {
+        // Seller Approved → Only update status
+        return res.status(200).json({
+          success: true,
+          message: "Seller status updated successfully",
+        });
+      }
+    }
+  );
 };
+
 
 exports.deleteSellerAccount = (req, res) => {
   const role = req.user.role;
