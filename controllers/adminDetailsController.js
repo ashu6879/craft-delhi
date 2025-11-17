@@ -144,7 +144,7 @@ exports.updateBuyerbyAdmin = (req, res) => {
       });
 }
 
-exports.updateBuyerStatus = async (req, res) => {
+exports.updateBuyerSellerStatus = async (req, res) => {
   const role = req.user.role;
   if (role != process.env.Admin_role_id) {
     return res.status(403).json({ success: false, message: 'Unauthorized' });
