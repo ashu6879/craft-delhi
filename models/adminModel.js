@@ -428,7 +428,7 @@ exports.getAllOrdersForAdmin = (callback) => {
     SELECT 
       -- Order Details
       O.id AS order_id, O.order_uid, O.user_id, O.total_amount, 
-      O.order_status, O.payment_status, O.payment_type, O.shipping_address_id, 
+      O.order_status, pm.payment_status, pm.payment_type, O.shipping_address_id, 
       O.created_at AS order_created_at,
 
       -- Order Items
@@ -443,6 +443,7 @@ exports.getAllOrdersForAdmin = (callback) => {
       UA.street, UA.city, UA.state, UA.country, UA.postal_code
     FROM order_details O
     LEFT JOIN order_items OI ON O.id = OI.order_id
+    LEFT JOIN payments pm ON pm.order_id = O.id
     LEFT JOIN products P ON P.id = OI.product_id
     LEFT JOIN user_addresses UA ON UA.id = O.shipping_address_id
     ORDER BY O.created_at DESC
