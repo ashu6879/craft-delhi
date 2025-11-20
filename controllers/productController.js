@@ -263,7 +263,7 @@ exports.updateProduct = async (req, res) => {
 
   // 🔹 Admin bypasses ownership check
   if (roleId === parseInt(process.env.Admin_role_id)) {
-    return productModel.getProductbyID(product_id, async (err, existingProduct) => {
+    return productModel.getProductbyIDforVerify(product_id, async (err, existingProduct) => {
       if (err || !existingProduct) {
         return res.status(404).json({ status: false, message: 'Product not found' });
       }

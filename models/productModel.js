@@ -44,6 +44,18 @@ exports.getProductbyID = (productId, userId, callback) => {
   });
 };
 
+exports.getProductbyIDforVerify = (productId, callback) => {
+  const sql = `
+    SELECT * FROM products WHERE id = ?
+  `;
+
+  db.query(sql, [productId], (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results[0]); // single product with is_favourite flag
+  });
+};
+
+
 exports.getProductbyIDforVerification = (productId, callback) => {
   const sql = `
     SELECT 
