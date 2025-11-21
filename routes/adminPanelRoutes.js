@@ -23,6 +23,10 @@ router.put(
   ]),verifyTokenforactions, 
   productController.updateProduct
 );
+router.put(
+  '/updateproductstatus/:product_id',verifyTokenforactions, 
+  productController.updateProductStatus
+);
 
 router.get('/buyer-stats', verifyTokenforactions,  adminController.getBuyerStats);
 router.get('/buyers-view', verifyTokenforactions, adminController.adminBuyersView);
