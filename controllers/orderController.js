@@ -193,7 +193,7 @@ exports.updateOrderDetails = (req, res) => {
     return res.status(400).json({ status: false, message: 'Order ID is required' });
   }
 
-  // Extract all fields from request body
+  // Extract all fields from body
   const {
     order_status,
     total_amount,
@@ -215,14 +215,18 @@ exports.updateOrderDetails = (req, res) => {
   if (order_status !== undefined) orderData.order_status = order_status;
   if (total_amount !== undefined) orderData.total_amount = total_amount;
   if (buyer_note !== undefined) orderData.buyer_note = buyer_note;
-  if (payment_status !== undefined) orderData.payment_status = payment_status;
-  if (payment_method !== undefined) orderData.payment_method = payment_method;
-  if (payment_type !== undefined) orderData.payment_type = payment_type;
   if (shipping_address_id !== undefined) orderData.shipping_address_id = shipping_address_id;
 
+  // Prepare payment data (FIXED)
+  const paymentData = {};
+  if (payment_status !== undefined) paymentData.payment_status = payment_status;
+  if (payment_method !== undefined) paymentData.payment_method = payment_method;
+  if (payment_type !== undefined) paymentData.payment_type = payment_type;
+
   // Prepare tracking data
-  const trackingData = {};
-  if (order_id !== undefined) trackingData.order_id = order_id;
+  const trackingData = {
+    order_id,
+  };
   if (tracking_company !== undefined) trackingData.tracking_company = tracking_company;
   if (tracking_number !== undefined) trackingData.tracking_number = tracking_number;
   if (tracking_link !== undefined) trackingData.tracking_link = tracking_link;
@@ -230,17 +234,22 @@ exports.updateOrderDetails = (req, res) => {
   if (estimated_delivery_to !== undefined) trackingData.estimated_delivery_to = estimated_delivery_to;
   if (tracking_status !== undefined) trackingData.status = tracking_status;
 
-  // Admin can update any order
-  if (roleId === parseInt(process.env.Admin_role_id)) {
+  // Admin logic
+  if (Number(roleId) === Number(process.env.Admin_role_id)) {
     return Order.getOrderByIDforVerification(order_id, async (err, existingOrder) => {
-      if (err || !existingOrder) {
+
+      if (err) {
+        return res.status(500).json({ status: false, message: 'Database error' });
+      }
+      if (!existingOrder) {
         return res.status(404).json({ status: false, message: 'Order not found' });
       }
-      await handleOrderAndTrackingUpdate(order_id, orderData, trackingData, res);
+
+      await handleOrderAndTrackingUpdate(order_id, orderData, trackingData, paymentData, res);
     });
   }
 
-  // Seller can update only own order
+  // Seller logic
   authorizeAction(
     Order,
     order_id,
@@ -250,7 +259,8 @@ exports.updateOrderDetails = (req, res) => {
       if (authError) {
         return res.status(authError.code).json({ status: false, message: authError.message });
       }
-      await handleOrderAndTrackingUpdate(order_id, orderData, trackingData, res);
+
+      await handleOrderAndTrackingUpdate(order_id, orderData, trackingData, paymentData, res);
     }
   );
 };

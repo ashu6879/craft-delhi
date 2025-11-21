@@ -1,4 +1,5 @@
 const Order = require('../models/orderModel');
+const Payment = require('../models/paymentModel');
 const orderTrackingModel = require('../models/orderTrackingModel');
 
 /**
@@ -10,113 +11,124 @@ const orderTrackingModel = require('../models/orderTrackingModel');
  * @param {object} res - Express response object.
  */
 
-exports.handleOrderAndTrackingUpdate = async (order_id, orderData, trackingData, res) => {
+exports.handleOrderAndTrackingUpdate = async (order_id, orderData = {}, trackingData = {}, paymentData = {}, res) => {
   try {
-    const hasOrderFields = Object.keys(orderData || {}).length > 0;
-    const hasTrackingFields =
-      trackingData.tracking_company ||
-      trackingData.tracking_number ||
-      trackingData.tracking_link ||
-      trackingData.estimated_delivery_from ||
-      trackingData.estimated_delivery_to ||
-      trackingData.status !== undefined;
+    const hasOrderFields = Object.keys(orderData).length > 0;
+    const hasPaymentFields = Object.keys(paymentData).length > 0;
 
-    // 🧱 Step 1️⃣ — Update order details (only if orderData has valid fields)
-    if (hasOrderFields) {
-      await new Promise((resolve, reject) => {
-        Order.updateOrderByID(order_id, orderData, (err, result) => {
-          if (err) {
-            console.error('❌ Order update error:', err);
-            return reject('Error updating order details');
-          }
+    const hasTrackingFields = Object.values(trackingData).some(
+      (v) => v !== undefined && v !== null && v !== ""
+    );
+
+    // Convert callbacks to promises
+    const updateOrder = (order_id, data) =>
+      new Promise((resolve, reject) => {
+        Order.updateOrderByID(order_id, data, (err, result) => {
+          if (err) return reject(err);
           resolve(result);
         });
       });
+
+    const updatePayment = (order_id, data) =>
+      new Promise((resolve, reject) => {
+        Payment.updatePaymentByOrderID(order_id, data, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+
+    const checkTracking = (order_id) =>
+      new Promise((resolve, reject) => {
+        orderTrackingModel.checkTrackingExists(order_id, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+
+    const updateTracking = (id, data) =>
+      new Promise((resolve, reject) => {
+        orderTrackingModel.updateTracking(id, data, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+
+    const addTracking = (data) =>
+      new Promise((resolve, reject) => {
+        orderTrackingModel.addTracking(data, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+
+    // 1️⃣ Update Order
+    if (hasOrderFields) {
+      await updateOrder(order_id, orderData);
     }
 
-    // 🧭 Step 2️⃣ — Add or update tracking info (only if tracking data provided)
+    // 2️⃣ Update Payment
+    if (hasPaymentFields) {
+      await updatePayment(order_id, paymentData);
+    }
+
+    // 3️⃣ Tracking update
     if (hasTrackingFields) {
-      // 🔹 Filter out undefined/null tracking fields
       const validTrackingData = {};
-      Object.keys(trackingData).forEach(key => {
+      Object.keys(trackingData).forEach((key) => {
         if (trackingData[key] !== undefined && trackingData[key] !== null) {
           validTrackingData[key] = trackingData[key];
         }
       });
 
-      // Check if tracking already exists
-      orderTrackingModel.checkTrackingExists(order_id, (checkErr, result) => {
-        if (checkErr) {
-          console.error('❌ Tracking check error:', checkErr);
-          return res.status(500).json({
-            status: false,
-            message: 'Error checking tracking info',
-          });
-        }
+      const trackingResult = await checkTracking(order_id);
 
-        if (result.length > 0) {
-          // 🔄 Update existing tracking record
-          orderTrackingModel.updateTracking(result[0].id, validTrackingData, (updateErr) => {
-            if (updateErr) {
-              console.error('❌ Tracking update error:', updateErr);
-              return res.status(500).json({
-                status: false,
-                message: 'Error updating tracking info',
-              });
-            }
+      if (trackingResult.length > 0) {
+        await updateTracking(trackingResult[0].id, validTrackingData);
+      } else {
+        await addTracking(validTrackingData);
+      }
 
-            // ✅ Conditional response
-            return res.status(200).json({
-              status: true,
-              message: hasOrderFields
-                ? 'Order and tracking details updated successfully'
-                : 'Tracking details updated successfully',
-            });
-          });
-        } else {
-          // ➕ Insert new tracking record
-          orderTrackingModel.addTracking(validTrackingData, (addErr) => {
-            if (addErr) {
-              console.error('❌ Tracking insert error:', addErr);
-              return res.status(500).json({
-                status: false,
-                message: 'Error adding tracking info',
-              });
-            }
-
-            // ✅ Conditional response
-            return res.status(200).json({
-              status: true,
-              message: hasOrderFields
-                ? 'Order details updated and tracking added successfully'
-                : 'Tracking details added successfully',
-            });
-          });
-        }
-      });
-    } else if (hasOrderFields) {
-      // ✅ Only order updated
       return res.status(200).json({
         status: true,
-        message: 'Order details updated successfully',
-      });
-    } else {
-      // 🚫 Nothing to update
-      return res.status(400).json({
-        status: false,
-        message: 'No valid data provided to update',
+        message:
+          hasOrderFields
+            ? "Order and tracking details updated successfully"
+            : hasPaymentFields
+            ? "Payment and tracking details updated successfully"
+            : "Tracking details updated successfully",
       });
     }
+
+    // 4️⃣ Only order updated
+    if (hasOrderFields) {
+      return res.status(200).json({
+        status: true,
+        message: "Order details updated successfully",
+      });
+    }
+
+    // 5️⃣ Only payment updated (ADDED THIS)
+    if (hasPaymentFields) {
+      return res.status(200).json({
+        status: true,
+        message: "Payment details updated successfully",
+      });
+    }
+
+    // 6️⃣ Nothing provided
+    return res.status(400).json({
+      status: false,
+      message: "No valid data provided to update",
+    });
+
   } catch (error) {
-    console.error('❌ Order update error:', error);
+    console.error("❌ Order update error:", error);
     return res.status(500).json({
       status: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 };
-
-
 
 exports.updateOrderStatusOnly = async (order_id, order_status, res) => {
   try {

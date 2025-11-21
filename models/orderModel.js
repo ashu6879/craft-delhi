@@ -264,9 +264,6 @@ exports.updateOrderByID = (order_id, data, callback) => {
     'order_status',
     'total_amount',
     'buyer_note',
-    'payment_status',
-    'payment_method',
-    'payment_type',
     'shipping_address_id'
   ];
 
