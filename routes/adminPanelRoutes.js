@@ -9,7 +9,7 @@ router.get('/dashboard-stats', verifyTokenforactions,  adminController.getDashbo
 router.get('/total-users', verifyTokenforactions,  adminController.getTotalusers);
 
 router.get('/products-view', verifyTokenforactions, adminController.adminProductsView);
-router.put('/update-product-approval', verifyTokenforactions, adminController.updateApprovalStatus);
+router.put('/update-product-approval/:product_id', verifyTokenforactions, adminController.updateApprovalStatus);
 router.get('/products-stats', verifyTokenforactions,  adminController.getProductsStats);
 router.get('/totalproductsforadmin', verifyTokenforactions,  adminController.getTotalProducts);
 router.delete('/deleteproductbyadmin/:product_id', verifyTokenforactions,  productController.deleteProduct);

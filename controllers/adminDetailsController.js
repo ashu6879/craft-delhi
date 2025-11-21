@@ -70,22 +70,88 @@ exports.updateApprovalStatus = (req, res) => {
     return res.status(403).json({ success: false, message: 'Unauthorized' });
   }
 
-  const { productId, status } = req.body;
+  const { status, reject_reason, reject_description } = req.body;
+  const { product_id } = req.params;
 
-  if (![0 ,1, 2].includes(status)) {
-    return res.status(400).json({ success: false, message: 'Invalid status. Use 1 (Approve) or 2 (Reject).' });
+  if (![0, 1, 2].includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid status. Use 1 (Approve) or 2 (Reject).'
+    });
   }
 
-  adminModel.updateProductApprovalStatus(productId, status, (err, result) => {
+  adminModel.updateProductApprovalStatus(product_id, status, (err, result) => {
     if (err) {
-      return res.status(500).json({ success: false, message: 'Failed to update status', error: err });
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update status',
+        error: err
+      });
     }
 
-    // Emit product-specific update
-    if (global.io) {
-      global.io.emit('productApprovalStatusUpdated', { productId, status });
+    // ------------------------------------------
+    // 📩 SEND EMAIL WHEN APPROVED OR REJECTED
+    // ------------------------------------------
+    adminModel.getSellerDetailsByProductID(product_id, async (err2, sellerData) => {
+      if (!err2 && sellerData?.email) {
+        const { email, first_name, last_name, product_name } = sellerData;
+        const sellerName = `${first_name} ${last_name}`;
 
-      // 🔄 Emit dashboard stats update
+        // If REJECTED
+        if (status === 2) {
+          try {
+            await sendEmail({
+              to: email,
+              subject: "Your Product Has Been Rejected",
+              title: "Product Rejected",
+              message: `
+                Hello, ${sellerName}<br><br>
+                Your product <b>${product_name}</b> has been <span style="color:red;">Rejected</span>.<br><br>
+
+                <b>Reason:</b> ${reject_reason || "Not provided"}<br>
+                <b>Description:</b> ${reject_description || "Not provided"}<br><br>
+
+                Please contact support for clarification.<br><br>
+
+                Regards,<br>
+                <b>Team Craft Delhi</b>
+              `,
+              text: `Your product was rejected.\nReason: ${reject_reason}\nDescription: ${reject_description}`
+            });
+          } catch (e) {
+            console.log("Failed to send rejection email:", e);
+          }
+        }
+
+        // If APPROVED
+        if (status === 1) {
+          try {
+            await sendEmail({
+              to: email,
+              subject: "Your Product Has Been Approved",
+              title: "Product Approved",
+              message: `
+                Hello, ${sellerName}<br><br>
+                Your product <b>${product_name}</b> has been Approved and is now live.<br><br>
+
+                Regards,<br>
+                <b>Team Craft Delhi</b>
+              `,
+              text: `Your product was approved and is now live.`
+            });
+          } catch (e) {
+            console.log("Failed to send approval email:", e);
+          }
+        }
+      }
+    });
+
+    // ------------------------------------------
+    // 🔊 SOCKET UPDATES
+    // ------------------------------------------
+    if (global.io) {
+      global.io.emit('productApprovalStatusUpdated', { product_id, status });
+
       adminModel.getDashboardStats((err, stats) => {
         if (!err && stats) {
           global.io.emit('dashboardStatsUpdate', stats);
@@ -93,9 +159,13 @@ exports.updateApprovalStatus = (req, res) => {
       });
     }
 
-    res.status(200).json({ success: true, message: 'Status updated successfully' });
+    return res.status(200).json({
+      success: true,
+      message: 'Status updated successfully'
+    });
   });
 };
+
 
 exports.getBuyerStats = (req, res) => {
   const role = req.user.role;
