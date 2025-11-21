@@ -72,7 +72,7 @@ exports.updateApprovalStatus = (req, res) => {
 
   const { productId, status } = req.body;
 
-  if (![1, 2].includes(status)) {
+  if (![0 ,1, 2].includes(status)) {
     return res.status(400).json({ success: false, message: 'Invalid status. Use 1 (Approve) or 2 (Reject).' });
   }
 
