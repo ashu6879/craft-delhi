@@ -561,6 +561,16 @@ exports.getRevenueStats = (callback) => {
   });
 };
 
+exports.getSellerDetailsByProductID = (productId, callback) => {
+  const sql = `
+    SELECT u.email, u.first_name, u.last_name, p.name
+    FROM products p
+    JOIN users u ON p.seller_id = u.id
+    WHERE p.id = ?
+  `;
+  db.query(sql, [productId], callback);
+};
+
 
 exports.getRevenueDetailsForAdmin = (year, month, callback) => {
   let sql = `
