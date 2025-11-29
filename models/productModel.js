@@ -17,7 +17,9 @@ exports.getallProducts = (userId, callback) => {
       CASE WHEN fp.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_favourite
     FROM products p
     LEFT JOIN favourites_product fp 
-      ON p.id = fp.product_id AND fp.user_id = ?
+      ON p.id = fp.product_id 
+      AND fp.user_id = ?
+    WHERE p.admin_approval = 1;
   `;
 
   db.query(sql, [userId], (err, results) => {
