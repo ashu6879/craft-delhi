@@ -26,12 +26,12 @@ exports.getTotalusers = (callback) => {
     if (err) return callback(err);
 
     // Convert numeric roles into human-readable text
-    const updatedResults = results.map(user => {
-      return {
-        ...user,
-        role: user.role == 2 ? "seller" : "buyer",
-      };
-    });
+    const roleMap = { 1: "admin", 2: "seller", 3: "buyer" };
+
+    const updatedResults = results.map(user => ({
+      ...user,
+      role: roleMap[user.role] || "unknown"
+    }));
 
     callback(null, updatedResults);
   });
