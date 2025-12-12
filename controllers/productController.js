@@ -113,7 +113,8 @@ exports.addProduct = async (req, res) => {
       stock, dimension, package_weight,
       weight_type, warranty_type,
       video_name, // from req.body
-      reel_name   // from req.body
+      reel_name,   // from req.body
+      hashtags 
     } = req.body;
 
     const seller_id = req.user.id;
@@ -145,6 +146,17 @@ exports.addProduct = async (req, res) => {
     const rawSlug = slugify(name, { lower: true });
     const cleanSlug = rawSlug.replace(/[^a-zA-Z0-9]/g, '');
     const product_sku = `SKU${cleanSlug}${timestamp}`;
+    let productHashtags = [];
+    if (hashtags) {
+      if (Array.isArray(hashtags)) {
+        productHashtags = hashtags.map(tag => tag.trim()).filter(Boolean);
+      } else if (typeof hashtags === "string") {
+        productHashtags = hashtags
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(Boolean);
+      }
+    }
 
     // Upload assets to S3
     let mainImage = null;
@@ -188,6 +200,7 @@ exports.addProduct = async (req, res) => {
       video_name, // from req.body
       reel_name,  // from req.body
       seller_id,
+      hashtags: JSON.stringify(productHashtags),
       status: 1 // default true
     };
 
