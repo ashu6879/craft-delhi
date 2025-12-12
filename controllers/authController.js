@@ -19,68 +19,49 @@ exports.sendOtp = (req, res) => {
 
   const otp_type = purpose === 'reset' ? 'forgot_password' : 'email_verification';
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min expiry
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   userModel.findByEmail(email, (err, results) => {
     if (err) return res.status(500).json({ status: false, error: err });
 
-    const userExists = Array.isArray(results) && results.length > 0;
-
+    const userExists = results.length > 0;
     if (purpose === 'reset') {
       if (!userExists) {
         return res.status(404).json({ status: false, message: 'Email not found. Cannot reset password.' });
       }
-      saveAndSendOtp();
-    } else {
-      if (!userExists) {
-        // Create email record before saving OTP
-        userModel.createEmailOnlyUser(email, (e) => {
-          if (e) return res.status(500).json({ status: false, error: e });
-          saveAndSendOtp();
-        });
-      } else {
-        saveAndSendOtp();
+      return saveAndSendOtp();
+    }
+
+    return saveAndSendOtp();
+  });
+
+  function saveAndSendOtp() {
+    otpModel.saveOtp(email, otp, expiresAt, otp_type, async (err2) => {
+      if (err2) {
+        return res.status(500).json({ status: false, error: err2 });
       }
-    }
-  });
 
-function saveAndSendOtp() {
-  otpModel.saveOtp(email, otp, expiresAt, otp_type, async (err2) => {
-    if (err2) {
-      return res.status(500).json({ status: false, error: err2 });
-    }
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Your Craft Delhi OTP',
+          title: 'Email Verification',
+          message: `
+            Hello,<br><br>
+            Your OTP is: <b>${otp}</b><br><br>
+            This OTP will expire in <b>10 minutes</b>.
+          `,
+          text: `Your OTP is ${otp}.`,
+        });
 
-    try {
-      await sendEmail({
-        to: email,
-        subject: 'Your Craft Delhi OTP',
-        title: 'Email Verification',
-        message: `
-          Hello,<br><br>
-          Your One-Time Password (OTP) for <b>Craft Delhi</b> verification is:
-          <br><br>
-          <b style="font-size: 24px; letter-spacing: 2px;">${otp}</b>
-          <br><br>
-          This OTP will expire in <b>10 minutes</b>. 
-          Please do not share it with anyone for security reasons.
-          <br><br>
-          Best regards,<br>
-          <b>Team Craft Delhi</b>
-        `,
-        text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
-      });
-
-      res.json({ status: true, message: 'OTP sent to email' });
-    } catch (error) {
-      console.error('Error sending OTP email:', error);
-      res.status(500).json({ status: false, error: 'Failed to send OTP email' });
-    }
-  });
-}
-
-
+        res.json({ status: true, message: 'OTP sent to email' });
+      } catch (error) {
+        console.error('Error sending OTP:', error);
+        res.status(500).json({ status: false, error: 'Failed to send OTP email' });
+      }
+    });
+  }
 };
-
 
 
 // Verify OTP
@@ -125,77 +106,98 @@ exports.verifyOtp = (req, res) => {
 exports.register = (req, res) => {
   const { email, first_name, last_name, password, phone_number, dob, role, gender } = req.body;
 
-  if (!email || !first_name || !last_name || !phone_number || !dob || role === undefined || role === null || gender === undefined || gender === null) {
+  if (!email || !first_name || !last_name || !phone_number || !dob || role == null || gender == null) {
     return res.status(400).json({ status: false, message: 'Required fields are missing' });
   }
 
-
   const roleNum = Number(role);
-  const hashed = roleNum === 3 ? null : (password ? bcrypt.hashSync(password, 10) : null); // only hash if not buyer
+  const hashedPassword = roleNum === 3 ? null : (password ? bcrypt.hashSync(password, 10) : null);
 
   userModel.findByEmail(email, (err, results) => {
     if (err) return res.status(500).json({ status: false, error: err });
 
-    // 📌 Buyer Flow (role = 3)
+    const exists = results.length > 0;
+    const user = exists ? results[0] : null;
+
+    // -------------------------------
+    // VALIDATE EMAIL VERIFICATION
+    // -------------------------------
+    if (!exists) {
+      return res.status(400).json({
+        status: false,
+        message: 'Please verify your email before registering.'
+      });
+    }
+
+    if (!user.is_email_verified) {
+      return res.status(400).json({
+        status: false,
+        message: 'Email not verified. Please verify OTP first.'
+      });
+    }
+
+    // -------------------------------
+    // IF USER ALREADY COMPLETED REGISTRATION
+    // -------------------------------
+    if (user.first_name && user.password) {
+      return res.status(400).json({
+        status: false,
+        message: 'User already exists. Please login.'
+      });
+    }
+
+    // -------------------------------
+    // BUYER FLOW (role = 3)
+    // -------------------------------
     if (roleNum === 3) {
-      if (!results || results.length === 0) {
-        // If new email, create record
-        return userModel.createEmailOnlyUser(email, (errCreate) => {
-          if (errCreate) return res.status(500).json({ status: false, error: errCreate });
-          userModel.updateUserDetailsWithoutVerification(
-            { email, first_name, last_name, password: null, phone_number, dob, role: roleNum, gender },
-            (errUpdate) => {
-              if (errUpdate) return res.status(500).json({ status: false, error: errUpdate });
-              return res.status(201).json({
-                status: true,
-                message: 'Buyer registered. Please verify your email to set password.',
-              });
-            }
-          );
-        });
-      }
-
-      // Email already exists
-      const existing = results[0];
-      if (existing.first_name) {
-        return res.status(400).json({ status: false, message: 'User already exists. Please login.' });
-      }
-
-      return userModel.updateUserDetailsWithoutVerification(
-        { email, first_name, last_name, password: null, phone_number, dob, role: roleNum, gender },
+      userModel.updateUserDetailsWithoutVerification(
+        {
+          email,
+          first_name,
+          last_name,
+          password: null,
+          phone_number,
+          dob,
+          role: roleNum,
+          gender
+        },
         (err2) => {
           if (err2) return res.status(500).json({ status: false, error: err2 });
           return res.status(201).json({
             status: true,
-            message: 'Buyer registered. Please verify your email to set password.',
+            message: 'Buyer registered successfully. Please login.'
           });
         }
       );
+      return;
     }
 
-    // 📌 Seller Flow (existing logic)
-    if (!results.length) {
-      return res.status(404).json({ status: false, message: 'Email not found. Please verify email first.' });
-    }
-
-    const user = results[0];
-    if (user.is_email_verified && user.first_name) {
-      return res.status(400).json({ status: false, message: 'User already exists. Please login.' });
-    }
-
-    if (!user.is_email_verified) {
-      return res.status(400).json({ status: false, message: 'Email not verified' });
-    }
-
+    // -------------------------------
+    // SELLER FLOW (role != 3)
+    // -------------------------------
     userModel.updateUserDetails(
-      { email, first_name, last_name, password: hashed, phone_number, dob, role: roleNum, gender },
-      (err2) => {
-        if (err2) return res.status(500).json({ status: false, error: err2 });
-        return res.status(201).json({ status: true, message: 'Seller registered. Awaiting approval.' });
+      {
+        email,
+        first_name,
+        last_name,
+        password: hashedPassword,
+        phone_number,
+        dob,
+        role: roleNum,
+        gender
+      },
+      (err3) => {
+        if (err3) return res.status(500).json({ status: false, error: err3 });
+
+        return res.status(201).json({
+          status: true,
+          message: 'Seller registered successfully. Awaiting admin approval.'
+        });
       }
     );
   });
 };
+
 
 exports.setPassword = (req, res) => {
   const { email, password } = req.body;
