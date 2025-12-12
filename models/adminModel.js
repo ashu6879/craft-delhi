@@ -18,15 +18,15 @@ exports.getDashboardStats = (callback) => {
 
 exports.getTotalusers = (callback) => {
   const sql = `
-    SELECT id AS user_id,account_trashed,first_name, last_name, role, user_status, email, phone_number
+    SELECT id AS user_id, account_trashed, first_name, last_name, role, user_status, email, phone_number
     FROM users
+    WHERE role != 1
   `;
 
   db.query(sql, (err, results) => {
     if (err) return callback(err);
 
-    // Convert numeric roles into human-readable text
-    const roleMap = { 1: "admin", 2: "seller", 3: "buyer" };
+    const roleMap = { 2: "seller", 3: "buyer" };
 
     const updatedResults = results.map(user => ({
       ...user,
@@ -36,6 +36,7 @@ exports.getTotalusers = (callback) => {
     callback(null, updatedResults);
   });
 };
+
 
 
 // adminModel.js
