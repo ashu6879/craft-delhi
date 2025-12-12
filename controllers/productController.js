@@ -317,13 +317,36 @@ async function handleProductUpdate(existingProduct, product_id, req, res) {
       video_name,
       reel_name,
       reel_url,
-      status
+      status,
+      hashtags  
     } = req.body || {};
 
     const updateData = {
       name, description, price, category_id, stock,
       dimension, package_weight, weight_type, warranty_type, video_name, reel_name, status
     };
+    if (hashtags !== undefined) {
+      let updatedHashtags = [];
+
+      try {
+        if (Array.isArray(hashtags)) {
+          updatedHashtags = hashtags.map(h => h.trim()).filter(Boolean);
+        } else if (typeof hashtags === "string") {
+          if (hashtags.startsWith("[") && hashtags.endsWith("]")) {
+            updatedHashtags = JSON.parse(hashtags);
+          } else {
+            updatedHashtags = hashtags
+              .split(',')
+              .map(h => h.trim())
+              .filter(Boolean);
+          }
+        }
+      } catch (err) {
+        console.error("Hashtag parse error:", err);
+      }
+
+      updateData.hashtags = JSON.stringify(updatedHashtags);
+    }
 
     // 🖼️ Gallery images
     if (req.files?.gallery_images) {
