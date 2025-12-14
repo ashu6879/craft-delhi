@@ -123,77 +123,156 @@ exports.verifyOtp = (req, res) => {
 
 // Complete Registration After Email Verification
 exports.register = (req, res) => {
-  const { email, first_name, last_name, password, phone_number, dob, role, gender } = req.body;
+  const {
+    email,
+    first_name,
+    last_name,
+    password,
+    phone_number,
+    dob,
+    role,
+    gender
+  } = req.body;
 
-  if (!email || !first_name || !last_name || !phone_number || !dob || role === undefined || role === null || gender === undefined || gender === null) {
-    return res.status(400).json({ status: false, message: 'Required fields are missing' });
+  if (
+    !email ||
+    !first_name ||
+    !last_name ||
+    !phone_number ||
+    !dob ||
+    role === undefined ||
+    gender === undefined
+  ) {
+    return res.status(400).json({
+      status: false,
+      message: 'Required fields are missing'
+    });
   }
 
-
   const roleNum = Number(role);
-  const hashed = roleNum === 3 ? null : (password ? bcrypt.hashSync(password, 10) : null); // only hash if not buyer
+  const hashed =
+    roleNum === 3 ? null : bcrypt.hashSync(password, 10);
 
   userModel.findByEmail(email, (err, results) => {
-    if (err) return res.status(500).json({ status: false, error: err });
+    if (err) {
+      return res.status(500).json({ status: false, error: err });
+    }
 
-    // 📌 Buyer Flow (role = 3)
+    const userExists = results.length > 0;
+    const user = userExists ? results[0] : null;
+
+    /* ======================================================
+       BUYER FLOW (role = 3)
+    ====================================================== */
     if (roleNum === 3) {
-      if (!results || results.length === 0) {
-        // If new email, create record
-        return userModel.createEmailOnlyUser(email, (errCreate) => {
-          if (errCreate) return res.status(500).json({ status: false, error: errCreate });
-          userModel.updateUserDetailsWithoutVerification(
-            { email, first_name, last_name, password: null, phone_number, dob, role: roleNum, gender },
-            (errUpdate) => {
-              if (errUpdate) return res.status(500).json({ status: false, error: errUpdate });
-              return res.status(201).json({
-                status: true,
-                message: 'Buyer registered. Please verify your email to set password.',
-              });
-            }
-          );
+
+      // Buyer already activated
+      if (userExists && user.password) {
+        return res.status(400).json({
+          status: false,
+          message: 'Account already exists. Please login.'
         });
       }
 
-      // Email already exists
-      const existing = results[0];
-      if (existing.first_name) {
-        return res.status(400).json({ status: false, message: 'User already exists. Please login.' });
+      // Create email-only user if not exists
+      if (!userExists) {
+        return userModel.createEmailOnlyUser(email, (errCreate) => {
+          if (errCreate) {
+            return res.status(500).json({ status: false, error: errCreate });
+          }
+
+          saveBuyerDetails();
+        });
       }
 
-      return userModel.updateUserDetailsWithoutVerification(
-        { email, first_name, last_name, password: null, phone_number, dob, role: roleNum, gender },
-        (err2) => {
-          if (err2) return res.status(500).json({ status: false, error: err2 });
-          return res.status(201).json({
-            status: true,
-            message: 'Buyer registered. Please verify your email to set password.',
-          });
-        }
-      );
-    }
+      // Resume incomplete buyer registration
+      return saveBuyerDetails();
 
-    // 📌 Seller Flow (existing logic)
-    if (!results.length) {
-      return res.status(404).json({ status: false, message: 'Email not found. Please verify email first.' });
-    }
+      function saveBuyerDetails() {
+        userModel.updateUserDetailsWithoutVerification(
+          {
+            email,
+            first_name,
+            last_name,
+            password: null,
+            phone_number,
+            dob,
+            role: roleNum,
+            gender
+          },
+          (errUpdate) => {
+            if (errUpdate) {
+              return res.status(500).json({ status: false, error: errUpdate });
+            }
 
-    const user = results[0];
-    if (user.is_email_verified && user.first_name) {
-      return res.status(400).json({ status: false, message: 'User already exists. Please login.' });
-    }
-
-    if (!user.is_email_verified) {
-      return res.status(400).json({ status: false, message: 'Email not verified' });
-    }
-
-    userModel.updateUserDetails(
-      { email, first_name, last_name, password: hashed, phone_number, dob, role: roleNum, gender },
-      (err2) => {
-        if (err2) return res.status(500).json({ status: false, error: err2 });
-        return res.status(201).json({ status: true, message: 'Seller registered. Awaiting approval.' });
+            return res.status(201).json({
+              status: true,
+              message: 'Buyer registered. Please verify your email to set password.'
+            });
+          }
+        );
       }
-    );
+    }
+
+    /* ======================================================
+       SELLER FLOW (role = 2)
+    ====================================================== */
+    if (roleNum === 2) {
+
+      if (!userExists) {
+        return res.status(404).json({
+          status: false,
+          message: 'Email not found. Please verify email first.'
+        });
+      }
+
+      if (!user.is_email_verified) {
+        return res.status(400).json({
+          status: false,
+          message: 'Email not verified'
+        });
+      }
+
+      // Resume incomplete seller registration
+      if (!user.password && !user.first_name) {
+        return userModel.updateUserDetails(
+          {
+            email,
+            first_name,
+            last_name,
+            password: hashed,
+            phone_number,
+            dob,
+            role: roleNum,
+            gender
+          },
+          (errUpdate) => {
+            if (errUpdate) {
+              return res.status(500).json({ status: false, error: errUpdate });
+            }
+
+            return res.status(201).json({
+              status: true,
+              message: 'Registration completed successfully. Awaiting approval.'
+            });
+          }
+        );
+      }
+
+      // Seller already registered
+      return res.status(400).json({
+        status: false,
+        message: 'User already registered. Please login.'
+      });
+    }
+
+    /* ======================================================
+       INVALID ROLE
+    ====================================================== */
+    return res.status(400).json({
+      status: false,
+      message: 'Invalid role'
+    });
   });
 };
 
@@ -261,48 +340,84 @@ exports.setPassword = (req, res) => {
   });
 };
 
-
-
 // Login
 exports.login = (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ status: false, message: 'Email and password are required' });
+    return res.status(400).json({
+      status: false,
+      message: 'Email and password are required'
+    });
   }
 
   userModel.findByEmail(email, (err, results) => {
-    if (err) return res.status(500).json({ status: false, error: err });
-    if (!results.length) return res.status(404).json({ status: false, message: 'User not found' });
+    if (err) {
+      return res.status(500).json({ status: false, error: err });
+    }
+
+    if (!results.length) {
+      return res.status(404).json({
+        status: false,
+        message: 'User not found'
+      });
+    }
 
     const user = results[0];
-    
     if (user.account_trashed === 1) {
-      return res.status(403).json({ status: false, message: 'Your account has been deleted.' });
+      return res.status(403).json({
+        status: false,
+        message: 'Your account has been deleted.'
+      });
     }
-    if (user.is_email_verified === 0) {
-      return res.status(403).json({ status: false, message: 'Email is not verified.' });
+    if (!user.is_email_verified) {
+      return res.status(403).json({
+        status: false,
+        message: 'Email is not verified.'
+      });
     }
-    if (user.user_approval === 0) {
-      return res.status(200).json({ status: false, message: 'Pending approval from admin. We will notify you once approved.' });
+    if (!user.password || !user.first_name) {
+      return res.status(400).json({
+        status: false,
+        message: 'Registration not completed. Please finish signup.'
+      });
     }
-
-    if (user.user_approval === 2) {
-      return res.status(403).json({ status: false, message: 'Your registration has been rejected by admin.' });
+    if (user.role !== 3 && user.user_approval === 0) {
+      return res.status(200).json({
+        status: false,
+        message: 'Pending approval from admin. We will notify you once approved.'
+      });
     }
-
+    if (user.role !== 3 && user.user_approval === 2) {
+      return res.status(403).json({
+        status: false,
+        message: 'Your registration has been rejected by admin.'
+      });
+    }
     const isMatch = bcrypt.compareSync(password, user.password);
-    if (!isMatch) return res.status(401).json({ status: false, message: 'Invalid credentials' });
+    if (!isMatch) {
+      return res.status(401).json({
+        status: false,
+        message: 'Invalid credentials'
+      });
+    }
 
+    // ✅ Success
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    res.json({ status: true, token, role: user.role, id: user.id});
+    return res.json({
+      status: true,
+      token,
+      role: user.role,
+      id: user.id
+    });
   });
 };
+
 
 // Reset Password
 exports.resetPassword = (req, res) => {
