@@ -300,6 +300,12 @@ exports.setPassword = (req, res) => {
         .status(400)
         .json({ status: false, message: 'Email is not verified' });
     }
+    if (user.password) {
+      return res.status(400).json({
+        status: false,
+        message: 'Password already set. Please use forgot password.'
+      });
+    }
 
     const hashed = bcrypt.hashSync(password, 10);
 
