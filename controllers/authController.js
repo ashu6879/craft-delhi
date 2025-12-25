@@ -423,7 +423,8 @@ exports.login = (req, res) => {
       status: true,
       token,
       role: user.role,
-      id: user.id
+      id: user.id,
+      name: user.first_name + " " + user.last_name
     });
   });
 };
