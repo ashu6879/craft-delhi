@@ -410,7 +410,11 @@ exports.login = (req, res) => {
 
     // ✅ Success
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      {
+        id: user.id,
+        role: user.role,
+        name: user.first_name + " " + user.last_name
+      },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
