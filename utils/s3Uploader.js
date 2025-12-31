@@ -25,8 +25,9 @@ const fieldMap = {
   gallery_images: { folder: 'gallery_images', prefix: 'gi' },
   product_video: { folder: 'product_video', prefix: 'vd' },
   product_reel: { folder: 'product_reel', prefix: 'rl' },
-  store_image: { folder: 'store_image', prefix: 'si' }, // ✅ Added this line
-  profile_image: { folder: 'profile_image', prefix: 'pi' } // ✅ Added this line
+  store_image: { folder: 'store_image', prefix: 'si' },
+  profile_image: { folder: 'profile_image', prefix: 'pi' },
+  banner: { folder: 'banner', prefix: 'ba' }
 };
 
 // Custom upload handler

@@ -626,3 +626,97 @@ exports.getRevenueDetailsForAdmin = (year, month, callback) => {
     callback(null, orders);
   });
 };
+
+exports.createBanner = (data, callback) => {
+  const {
+    title,
+    banner,
+    type,
+    status = 1,
+    position = 0
+  } = data;
+
+  const query = `
+    INSERT INTO banners (title, banner, type, status, position)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  const values = [title, banner, type, status, position];
+
+  db.query(query, values, (err, result) => {
+    if (err) return callback(err, null);
+    return callback(null, result);
+  });
+};
+
+exports.updateBannerByID = (bannerId, data, callback) => {
+  const fields = [];
+  const values = [];
+
+  // Dynamically build SET clause
+  for (let key in data) {
+    if (data[key] !== undefined) {
+      fields.push(`${key} = ?`);
+      values.push(data[key]);
+    }
+  }
+
+  if (fields.length === 0) {
+    return callback(null, { affectedRows: 0 });
+  }
+
+  const sql = `
+    UPDATE banners
+    SET ${fields.join(', ')}
+    WHERE id = ?
+  `;
+
+  values.push(bannerId);
+
+  db.query(sql, values, (err, result) => {
+    if (err) return callback(err, null);
+    return callback(null, result);
+  });
+};
+
+exports.getBannerByID = (bannerId, callback) => {
+  const sql = `
+    SELECT *
+    FROM banners
+    WHERE id = ?
+    LIMIT 1
+  `;
+
+  db.query(sql, [bannerId], (err, results) => {
+    if (err) return callback(err, null);
+
+    if (results.length === 0) {
+      return callback(null, null);
+    }
+
+    return callback(null, results[0]);
+  });
+};
+
+exports.getActiveBanners = (callback) => {
+  const sql = `
+    SELECT *
+    FROM banners
+    WHERE status = 1
+    ORDER BY position ASC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results);
+  });
+};
+
+exports.deleteBannerByID = (bannerId, callback) => {
+  const sql = `DELETE FROM banners WHERE id = ?`;
+
+  db.query(sql, [bannerId], (err, result) => {
+    if (err) return callback(err, null);
+    return callback(null, result);
+  });
+};

@@ -643,3 +643,263 @@ exports.adminRevenueView = (req, res) => {
   });
 };
 
+exports.createBanner = async (req, res) => {
+  try {
+    const role = req.user.role;
+    if (role != process.env.Admin_role_id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    const { title, type, status } = req.body;
+    
+
+    if (!title || !type) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and type are required",
+      });
+    }
+
+    if (!req.files?.banner?.[0]) {
+      return res.status(400).json({
+        success: false,
+        message: "Banner file is required",
+      });
+    }
+
+    const file = req.files.banner[0];
+
+    // Upload to S3
+    const bannerUrl = await uploadToS3(file, "banner");
+
+    const bannerData = {
+      title,
+      banner: bannerUrl,
+      type,
+      status: status ?? 1,
+      position: 0,
+    };
+
+    adminModel.createBanner(bannerData, (err, result) => {
+      if (err) {
+        console.error("Create banner error:", err);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to create banner",
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: "Banner created successfully",
+        data: {
+          id: result.insertId,
+          ...bannerData,
+        },
+      });
+    });
+  } catch (error) {
+    console.error("Create banner error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+exports.updateBanner = async (req, res) => {
+  try {
+    const role = req.user.role;
+    if (role != process.env.Admin_role_id) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { banner_id } = req.params;
+    const { title, type, status, position } = req.body;
+    adminModel.getBannerByID(banner_id, async (err, banner) => {
+      if (err) {
+        console.error("Fetch banner error:", err);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to fetch banner",
+        });
+      }
+
+      if (!banner) {
+        return res.status(404).json({
+          success: false,
+          message: "Banner not found",
+        });
+      }
+
+      let bannerUrl = banner.banner;
+
+      // 2️⃣ Replace banner file if uploaded
+      if (req.files?.banner?.[0]) {
+        const file = req.files.banner[0];
+        if (banner.banner) {
+          try {
+            await deleteFilesFromS3(
+              [banner.banner],                 // mediaUrls array
+              process.env.AWS_BUCKET_NAME
+            );
+          } catch (err) {
+            console.error("S3 delete error:", err);
+          }
+        }
+        bannerUrl = await uploadToS3(file, "banner");
+      }
+      const updateData = {
+        title,
+        banner: bannerUrl,
+        type,
+        status,
+        position:
+          position !== undefined ? Number(position) : undefined,
+      };
+      adminModel.updateBannerByID(banner_id, updateData, (err, result) => {
+        if (err) {
+          console.error("Update banner error:", err);
+          return res.status(500).json({
+            success: false,
+            message: "Failed to update banner",
+          });
+        }
+
+        if (result.affectedRows === 0) {
+          return res.status(200).json({
+            success: true,
+            message: "No changes applied",
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "Banner updated successfully",
+        });
+      });
+    });
+  } catch (error) {
+    console.error("Update banner error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+
+exports.getBannerByID = (req, res) => {
+  const { banner_id } = req.params;
+
+  adminModel.getBannerByID(banner_id, (err, banner) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch banner",
+      });
+    }
+
+    if (!banner) {
+      return res.status(404).json({
+        success: false,
+        message: "Banner not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: banner,
+    });
+  });
+};
+
+exports.getBanners = (req, res) => {
+  adminModel.getActiveBanners((err, banners) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch banners",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: banners,
+    });
+  });
+};
+
+exports.deleteBanner = async (req, res) => {
+  try {
+    const role = req.user.role;
+    if (role != process.env.Admin_role_id) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { banner_id } = req.params;
+
+    // 1️⃣ Fetch banner first (for S3 cleanup)
+    adminModel.getBannerByID(banner_id, async (err, banner) => {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to fetch banner",
+        });
+      }
+
+      if (!banner) {
+        return res.status(404).json({
+          success: false,
+          message: "Banner not found",
+        });
+      }
+      if (banner.banner) {
+        try {
+          await deleteFilesFromS3(
+            [banner.banner],
+            process.env.AWS_BUCKET_NAME
+          );
+        } catch (err) {
+          console.error("S3 delete error:", err);
+          // Optional: stop deletion if S3 fails
+        }
+      }
+
+      // 3️⃣ Delete banner record from DB
+      adminModel.deleteBannerByID(banner_id, (err, result) => {
+        if (err) {
+          return res.status(500).json({
+            success: false,
+            message: "Failed to delete banner",
+          });
+        }
+
+        if (result.affectedRows === 0) {
+          return res.status(404).json({
+            success: false,
+            message: "Banner not found",
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "Banner deleted successfully",
+        });
+      });
+    });
+  } catch (error) {
+    console.error("Delete banner error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+

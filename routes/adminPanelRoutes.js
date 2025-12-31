@@ -53,4 +53,26 @@ router.put('/orderstatus-update', verifyTokenforactions, adminController.adminOr
 router.delete('/order-delete/:order_id', verifyTokenforactions, adminController.deleteOrderbyAdmin);
 router.get('/revenue-stats', verifyTokenforactions,  adminController.getRevenueStats);
 router.get('/revenue-details', verifyTokenforactions, adminController.adminRevenueView);
+
+
+router.post(
+  '/add-banner',
+  verifyTokenforactions,
+  upload.fields([
+    { name: 'banner', maxCount: 1 }
+  ]),
+  adminController.createBanner
+);
+router.get('/getbanner' ,adminController.getBanners);
+router.get('/getbannerbyid/:banner_id' ,adminController.getBannerByID);
+router.delete('/delete-banner/:banner_id' , verifyTokenforactions ,adminController.deleteBanner);
+// router.delete('/deletebanner/:banner_id',verifyTokenforactions  ,adminController.deleteBanner);
+router.put(
+  '/update-banner/:banner_id',
+  verifyTokenforactions,
+  upload.fields([
+    { name: 'banner', maxCount: 1 } // image OR video
+  ]),
+  adminController.updateBanner
+);
 module.exports = router;
