@@ -102,7 +102,7 @@ exports.updateUserAddress = (req, res) => {
   }
 
   authorizeAction(UserAddress, id, userId, {
-    getMethod: 'getAddressByID',
+    getMethod: 'getAddressByIDForAuth',
     ownerField: 'user_id'
   }, (authError, address) => {
     if (authError) {
@@ -133,7 +133,7 @@ exports.deleteUserAddress = (req, res) => {
   }
 
   authorizeAction(UserAddress, id, userId, {
-    getMethod: 'getAddressByID',
+    getMethod: 'getAddressByIDForAuth',
     ownerField: 'user_id'
   }, (authError, address) => {
     if (authError) {

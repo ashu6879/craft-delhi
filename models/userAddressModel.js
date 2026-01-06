@@ -35,6 +35,16 @@ exports.getAddressByID = (id, user_id, callback) => {
   });
 };
 
+exports.getAddressByIDForAuth = (id, callback) => {
+  const sql = 'SELECT * FROM user_addresses WHERE id = ?';
+  db.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error('Error fetching address by ID:', err);
+      return callback(err, null);
+    }
+    return callback(null, results[0] || null); // return null if no record found
+  });
+};
 
 // ✅ Delete address by ID
 exports.deleteAddressByID = (id, callback) => {
