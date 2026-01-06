@@ -357,7 +357,13 @@ exports.updateUserProfileDetails = (userId, data, callback) => {
   };
 
   Promise.all([updateUser(), updateProfile(), saveAddress()])
-    .then(() => callback(null, { success: true }))
+    .then(([userRes, profileRes, addressRes]) => {
+      callback(null, {
+        userUpdate: userRes || { affectedRows: 0 },
+        profileUpdate: profileRes || { affectedRows: 0 },
+        addressUpdate: addressRes || { affectedRows: 0 }
+      });
+    })
     .catch(err => callback(err));
 };
 
