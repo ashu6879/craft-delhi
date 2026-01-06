@@ -12,6 +12,13 @@ router.put(
   profileDetailsController.updateProfile
 );
 router.get('/getdetails',verifyTokenforactions, profileDetailsController.getProfileDetails);
+router.get('/getUserdetails',verifyTokenforactions, profileDetailsController.getUserProfileDetails);
+router.put(
+  '/edituserprofile',
+  upload.single('profile_image'), // ⬅️ handles one file field named `store_image`
+  verifyTokenforactions,
+  profileDetailsController.updateUserProfile
+);
 
 router.put('/editbankdetails',verifyTokenforactions,profileDetailsController.updateBankDetails);
 router.get('/getbankdetails',verifyTokenforactions, profileDetailsController.getBankDetails);
