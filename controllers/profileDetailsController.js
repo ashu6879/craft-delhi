@@ -304,7 +304,8 @@ exports.updateUserProfile = async (req, res) => {
       street,
       postal_code,
       country,
-      state
+      state,
+      address_id
     } = req.body;
 
     let profile_image = null;
@@ -344,7 +345,8 @@ exports.updateUserProfile = async (req, res) => {
             street,
             postal_code,
             country,
-            state
+            state,
+            address_id
           };
 
           if (profile_image) {
