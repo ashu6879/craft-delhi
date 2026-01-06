@@ -362,10 +362,14 @@ exports.updateUserProfile = async (req, res) => {
 
             // ✅ Check if anything actually updated in either table
             const userAffected = result.userUpdate?.affectedRows || 0;
-            const detailsAffected = result.detailUpdate?.affectedRows || 0;
+            const profileAffected = result.profileUpdate?.affectedRows || 0;
+            const addressAffected = result.addressUpdate?.affectedRows || 0;
 
-            if (userAffected === 0 && detailsAffected === 0) {
-              return res.status(200).json({ status: true, message: 'No changes provided.' });
+            if (userAffected === 0 && profileAffected === 0 && addressAffected === 0) {
+              return res.status(200).json({
+                status: true,
+                message: 'No changes provided.'
+              });
             }
 
             // Fetch updated profile to return
