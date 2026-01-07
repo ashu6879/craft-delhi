@@ -410,3 +410,117 @@ exports.getOrdersbyUserID = (user_id, callback) => {
   });
 };
 
+exports.getOrdersInvoiceById = (order_id, callback) => {
+  const query = `
+    SELECT 
+      od.id AS order_id,
+      od.order_uid,
+      od.user_id,
+      od.total_amount,
+      od.order_status,
+      pay.payment_uid,
+      pay.payment_type,
+      pay.payment_status,
+      pay.payment_method,
+      od.shipping_address_id,
+      od.buyer_note,
+      od.created_at,
+      oi.id AS item_id,
+      oi.product_id,
+      oi.quantity,
+      oi.price,
+      oi.subtotal,
+      u.first_name,
+      u.last_name,
+      u.email,
+      u.phone_number,
+      p.name AS product_name,
+      p.main_image_url,
+      ua.street,
+      ua.city,
+      ua.state,
+      ua.country,
+      ua.postal_code,
+      -- 🟢 Tracking columns
+      ot.id AS tracking_id,
+      ot.tracking_company,
+      ot.tracking_number,
+      ot.tracking_link,
+      ot.estimated_delivery_from,
+      ot.estimated_delivery_to,
+      ot.status AS tracking_status
+    FROM order_details od
+    LEFT JOIN order_items oi ON oi.order_id = od.id
+    LEFT JOIN users u ON u.id = od.user_id
+    LEFT JOIN products p ON p.id = oi.product_id
+    LEFT JOIN user_addresses ua ON ua.id = od.shipping_address_id
+    LEFT JOIN payments pay ON pay.order_id = od.id
+    LEFT JOIN order_tracking ot ON ot.order_id = od.id
+    WHERE od.id = ?
+    ORDER BY od.created_at DESC
+  `;
+
+  db.query(query, [order_id], (err, results) => {
+    if (err) return callback(err, null);
+    if (!results.length) return callback(null, []);
+
+    const ordersMap = {};
+
+    results.forEach(row => {
+      if (!ordersMap[row.order_id]) {
+        const hasTracking = !!row.tracking_id;
+
+        const orderData = {
+          order_id: row.order_id,
+          order_uid: row.order_uid,
+          user_id: row.user_id,
+          buyer_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+          phone_number: row.phone_number,
+          email: row.email,
+          total_amount: row.total_amount,
+          order_status: row.order_status,
+          payment_status: row.payment_status,
+          payment_method: row.payment_method,
+          payment_uid: row.payment_uid,
+          payment_type: row.payment_type,
+          shipping_address_id: row.shipping_address_id,
+          shipping_info: `${row.street || ''} ${row.city || ''} ${row.state || ''} ${row.country || ''} ${row.postal_code || ''}`.trim(),
+          buyer_note: row.buyer_note,
+          created_at: row.created_at,
+          items: [],
+          tracking_info: hasTracking
+        };
+
+        // 🟢 Only add tracking_details when exists
+        if (hasTracking) {
+          orderData.tracking_details = {
+            tracking_id: row.tracking_id,
+            tracking_company: row.tracking_company,
+            tracking_number: row.tracking_number,
+            tracking_link: row.tracking_link,
+            estimated_delivery_from: row.estimated_delivery_from,
+            estimated_delivery_to: row.estimated_delivery_to,
+            tracking_status: row.tracking_status
+          };
+        }
+
+        ordersMap[row.order_id] = orderData;
+      }
+
+      if (row.item_id) {
+        ordersMap[row.order_id].items.push({
+          item_id: row.item_id,
+          product_id: row.product_id,
+          main_image_url: row.main_image_url,
+          product_name: row.product_name,
+          quantity: row.quantity,
+          price: row.price,
+          subtotal: row.subtotal
+        });
+      }
+    });
+
+    const orders = Object.values(ordersMap);
+    callback(null, orders);
+  });
+};

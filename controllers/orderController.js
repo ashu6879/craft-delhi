@@ -2,7 +2,7 @@ const Order = require('../models/orderModel');
 const authorizeAction = require('../utils/authorizeAction');
 const OrderTracking = require('../models/orderTrackingModel');
 const {handleOrderAndTrackingUpdate, updateOrderStatusOnly, markOrderAsCancelled} = require('../utils/updateUtils');
-
+const {generateInvoicePDF} = require('../utils/invoiceGenerator');
 
 // ✅ Create Order
 exports.createOrder = (req, res) => {
@@ -334,6 +334,42 @@ exports.cancelOrderbyUser = (req, res) => {
       }
 
       return markOrderAsCancelled(order_id, 4, cancel_reason, res);
+    }
+  );
+};
+
+exports.getOrderInvoice = (req, res) => {
+  const user_id = req.user?.id;
+  const order_id = req.params?.order_id;
+
+  if (!user_id) {
+    return res
+      .status(401)
+      .json({ status: false, message: 'Unauthorized' });
+  }
+
+  authorizeAction(
+    Order,
+    order_id,
+    user_id,
+    { getMethod: 'getOrderByIDforVerification', ownerField: 'user_id' },
+    async (authError) => {
+      if (authError) {
+        return res
+          .status(authError.code)
+          .json({ status: false, message: authError.message });
+      }
+
+      Order.getOrdersInvoiceById(order_id, (err, orderData) => {
+        if (err || !orderData?.length) {
+          return res
+            .status(404)
+            .json({ status: false, message: 'Order not found' });
+        }
+
+        // Generate & download PDF
+        generateInvoicePDF(orderData[0], res);
+      });
     }
   );
 };

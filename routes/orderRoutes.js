@@ -11,5 +11,6 @@ router.put('/updatedetails/:order_id', verifyTokenforactions,orderController.upd
 
 // user orders
 router.get('/userorders', verifyTokenforactions,orderController.OrderbyUser);
+router.get('/orderinvoice/:order_id', verifyTokenforactions,orderController.getOrderInvoice);
 router.put('/cancelorderbyuser/:order_id', verifyTokenforactions,orderController.cancelOrderbyUser);
 module.exports = router;
