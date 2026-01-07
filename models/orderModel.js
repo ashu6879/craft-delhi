@@ -314,6 +314,7 @@ exports.getOrdersbyUserID = (user_id, callback) => {
       oi.product_id,
       oi.quantity,
       oi.price,
+      oi.main_image_url,
       oi.subtotal,
       u.first_name,
       u.last_name,
@@ -395,6 +396,7 @@ exports.getOrdersbyUserID = (user_id, callback) => {
         ordersMap[row.order_id].items.push({
           item_id: row.item_id,
           product_id: row.product_id,
+          main_image_url: row.main_image_url,
           product_name: row.product_name,
           quantity: row.quantity,
           price: row.price,
