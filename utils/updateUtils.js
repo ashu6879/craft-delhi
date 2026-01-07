@@ -233,3 +233,35 @@ exports.runQuery = (connection, sql, params) => {
     });
   });
 };
+
+exports.markOrderAsCancelled = async (order_id, order_status, cancel_reason, res) => {
+  try {
+    Order.updateOrderByID(order_id, { order_status, cancel_reason }, (err, result) => {
+      if (err) {
+        console.error('❌ DB update error:', err);
+        return res.status(500).json({
+          status: false,
+          message: 'Error updating order status'
+        });
+      }
+
+      if (result.affectedRows > 0) {
+        return res.status(200).json({
+          status: true,
+          message: 'Order status updated successfully'
+        });
+      } else {
+        return res.status(400).json({
+          status: false,
+          message: 'No order updated (possibly same status)'
+        });
+      }
+    });
+  } catch (error) {
+    console.error('❌ Status update error:', error);
+    return res.status(500).json({
+      status: false,
+      message: 'Error updating order status'
+    });
+  }
+};

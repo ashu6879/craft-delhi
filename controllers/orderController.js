@@ -1,7 +1,7 @@
 const Order = require('../models/orderModel');
 const authorizeAction = require('../utils/authorizeAction');
 const OrderTracking = require('../models/orderTrackingModel');
-const {handleOrderAndTrackingUpdate, updateOrderStatusOnly} = require('../utils/updateUtils');
+const {handleOrderAndTrackingUpdate, updateOrderStatusOnly, markOrderAsCancelled} = require('../utils/updateUtils');
 
 
 // ✅ Create Order
@@ -99,16 +99,16 @@ exports.recentOrderbySeller = (req, res) => {
   Order.getrecentOrdersbySellerID (seller_id, (err, orders) => {
     if (err) {
       console.error('Fetch Recent Orders Error:', err);
-      return res.status(500).json({ status: false, message: 'Failed to fetch recent orders' });
+      return res.status(500).json({ status: false, message: 'Failed to fetch orders' });
     }
 
     if (!orders || orders.length === 0) {
-      return res.status(404).json({ status: false, message: 'No recent orders found' });
+      return res.status(404).json({ status: false, message: 'No orders found' });
     }
 
     return res.status(200).json({
       status: true,
-      message: 'Recent orders fetched successfully',
+      message: 'orders fetched successfully',
       data: orders
     });
   });
@@ -261,6 +261,79 @@ exports.updateOrderDetails = (req, res) => {
       }
 
       await handleOrderAndTrackingUpdate(order_id, orderData, trackingData, paymentData, res);
+    }
+  );
+};
+
+exports.OrderbyUser = (req, res) => {
+  const user_id = req.user?.id;
+
+  if (!user_id) {
+    return res.status(401).json({ status: false, message: 'Unauthorized: User ID not found' });
+  }
+
+  // You can limit recent orders to last 5 or 10 — customize as needed
+  Order.getOrdersbyUserID (user_id, (err, orders) => {
+    if (err) {
+      console.error('Fetch Recent Orders Error:', err);
+      return res.status(500).json({ status: false, message: 'Failed to fetch recent orders' });
+    }
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ status: false, message: 'No recent orders found' });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'Recent orders fetched successfully',
+      data: orders
+    });
+  });
+};
+
+exports.cancelOrderbyUser = (req, res) => {
+  const { order_id } = req.params;
+  const { cancel_reason } = req.body;
+  const userId = req.user?.id;
+  const roleId = req.user?.role;
+
+  if (!order_id) {
+    return res.status(400).json({ status: false, message: 'Order ID is required' });
+  }
+
+  if (!cancel_reason || cancel_reason.trim().length < 3) {
+    return res.status(400).json({
+      status: false,
+      message: 'Cancel reason is required'
+    });
+  }
+
+  // 🔹 Admin
+  if (roleId === process.env.ADMIN_ROLE_ID) {
+    return Order.getOrderByIDforVerification(order_id, (err, existingOrder) => {
+      if (err || !existingOrder) {
+        return res.status(404).json({ status: false, message: 'Order not found' });
+      }
+
+      return markOrderAsCancelled(order_id, 4, cancel_reason, res);
+    });
+  }
+
+  // 🔹 Seller / User authorization
+  authorizeAction(
+    Order,
+    order_id,
+    userId,
+    { getMethod: 'getOrderByIDforVerification', ownerField: 'user_id' },
+    (authError) => {
+      if (authError) {
+        return res.status(authError.code).json({
+          status: false,
+          message: authError.message
+        });
+      }
+
+      return markOrderAsCancelled(order_id, 4, cancel_reason, res);
     }
   );
 };
