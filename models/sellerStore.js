@@ -200,3 +200,61 @@ exports.getAllProductsForSellerbyID = (seller_id,product_id,callback) => {
   `;
   db.query(sql,[seller_id,product_id], callback);
 };
+
+exports.getStoreDetails = (sellerId, callback) => {
+  const sql = `
+    SELECT 
+        pc.name AS category_name,
+        p.name,
+        p.product_sku,
+        p.description,
+        p.price,
+        p.video_url,
+        p.reel_url
+    FROM products p
+    LEFT JOIN product_categories pc 
+        ON pc.creator_id = p.seller_id
+    WHERE p.seller_id = ?;
+  `;
+
+  db.query(sql, [sellerId], (err, results) => {
+    if (err) return callback(err);
+
+    const categoriesSet = new Set();
+    const productsMap = new Map();
+    const videos = new Set();
+    const reels = new Set();
+
+    results.forEach(row => {
+      // Categories
+      if (row.category_name) {
+        categoriesSet.add(row.category_name);
+      }
+
+      // Products (avoid duplicates)
+      if (!productsMap.has(row.product_sku)) {
+        productsMap.set(row.product_sku, {
+          name: row.name,
+          product_sku: row.product_sku,
+          description: row.description,
+          price: row.price
+        });
+      }
+
+      // Media
+      if (row.video_url) videos.add(row.video_url);
+      if (row.reel_url) reels.add(row.reel_url);
+    });
+
+    const response = {
+      categories: [...categoriesSet],
+      products: [...productsMap.values()],
+      media: {
+        videos: [...videos],
+        reels: [...reels]
+      }
+    };
+
+    callback(null, response);
+  });
+};

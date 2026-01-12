@@ -235,3 +235,28 @@ exports.sellerProductsViewbyID = (req, res) => {
     res.status(200).json({ success: true, data: result });
   });
 };
+
+exports.getStore = (req, res) => {
+  const sellerId = req.params.store_id;
+
+  if (!sellerId || isNaN(sellerId)) {
+    return res.status(400).json({ status: false, message: 'Invalid seller ID' });
+  }
+
+  SellerStore.getStoreDetails(sellerId, (err, store) => {
+    if (err) {
+      console.error('MySQL error:', err);
+      return res.status(500).json({ status: false, message: 'Internal server error' });
+    }
+
+    if (!store) {
+      return res.status(404).json({ status: false, message: 'Store not found for this seller' });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'Store details fetched successfully.',
+      store
+    });
+  });
+};
