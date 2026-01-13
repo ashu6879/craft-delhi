@@ -206,6 +206,7 @@ exports.getStoreDetails = (sellerId, callback) => {
     SELECT 
         pc.name AS category_name,
         p.name,
+        p.seller_id,
         p.product_sku,
         p.description,
         p.price,
@@ -235,6 +236,7 @@ exports.getStoreDetails = (sellerId, callback) => {
       if (!productsMap.has(row.product_sku)) {
         productsMap.set(row.product_sku, {
           name: row.name,
+          seller_id: row.seller_id,
           product_sku: row.product_sku,
           description: row.description,
           price: row.price
