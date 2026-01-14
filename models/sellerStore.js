@@ -206,7 +206,7 @@ exports.getStoreDetails = (sellerId, callback) => {
     SELECT 
         pc.name AS category_name,
         p.name,
-        p.seller_id,
+        p.seller_id AS storeId,
         p.product_sku,
         p.description,
         p.price,
