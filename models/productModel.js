@@ -13,8 +13,29 @@ exports.insert = (data) => {
 exports.getallProducts = (userId, callback) => {
   const sql = `
     SELECT 
-      p.*, 
-      CASE WHEN fp.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_favourite
+      p.id,
+      p.seller_id AS storeId,
+      p.name,
+      p.product_sku,
+      p.description,
+      p.category_id,
+      p.stock,
+      p.dimension,
+      p.package_weight,
+      p.warranty_type,
+      p.gallery_images,
+      p.video_url,
+      p.reel_url,
+      p.reel_name,
+      p.video_name,
+      p.hashtags,
+      p.created_at,
+      p.main_image_url,
+      p.price, 
+      CASE 
+        WHEN fp.id IS NOT NULL THEN TRUE 
+        ELSE FALSE 
+      END AS is_favourite
     FROM products p
     LEFT JOIN favourites_product fp 
       ON p.id = fp.product_id 
