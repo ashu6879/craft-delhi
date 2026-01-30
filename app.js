@@ -12,6 +12,7 @@ const orders = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const webhookHandler = require('./utils/webhook');
 const orderTrackingRoutes = require('./routes/orderTrackingRoutes');
+const reviewsRoutes = require('./routes/reviewsRoutes');
 
 
 
@@ -31,5 +32,6 @@ app.use('/api/useraddress', userAddress);
 app.use('/api/order', orders);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/order-tracking', orderTrackingRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 module.exports = app;
