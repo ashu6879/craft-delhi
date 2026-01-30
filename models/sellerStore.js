@@ -204,17 +204,11 @@ exports.getAllProductsForSellerbyID = (seller_id,product_id,callback) => {
 exports.getStoreDetails = (sellerId, callback) => {
   const sql = `
     SELECT 
-        pc.name AS category_name,
-        p.name,
-        p.seller_id AS storeId,
-        p.product_sku,
-        p.description,
-        p.price,
-        p.video_url,
-        p.reel_url
+      pc.name AS category_name,
+      p.*
     FROM products p
-    LEFT JOIN product_categories pc 
-        ON pc.creator_id = p.seller_id
+    LEFT JOIN product_categories pc
+      ON pc.id = p.category_id
     WHERE p.seller_id = ?;
   `;
 
@@ -232,14 +226,25 @@ exports.getStoreDetails = (sellerId, callback) => {
         categoriesSet.add(row.category_name);
       }
 
-      // Products (avoid duplicates)
+      // Products (unique by SKU)
       if (!productsMap.has(row.product_sku)) {
         productsMap.set(row.product_sku, {
+          id: row.id,
           name: row.name,
           seller_id: row.seller_id,
+          storeId: row.seller_id, // frontend friendly
           product_sku: row.product_sku,
           description: row.description,
-          price: row.price
+          price: row.price,
+          stock: row.stock,
+          dimension: row.dimension,
+          package_weight: row.package_weight,
+          weight_type: row.weight_type,
+          warranty_type: row.warranty_type,
+          main_image_url: row.main_image_url,
+          gallery_images: row.gallery_images,
+          category_id: row.category_id,
+          created_at: row.created_at
         });
       }
 
@@ -248,15 +253,14 @@ exports.getStoreDetails = (sellerId, callback) => {
       if (row.reel_url) reels.add(row.reel_url);
     });
 
-    const response = {
+    callback(null, {
       categories: [...categoriesSet],
       products: [...productsMap.values()],
       media: {
         videos: [...videos],
         reels: [...reels]
       }
-    };
-
-    callback(null, response);
+    });
   });
 };
+
