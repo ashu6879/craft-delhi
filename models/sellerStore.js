@@ -205,10 +205,32 @@ exports.getStoreDetails = (sellerId, callback) => {
   const sql = `
     SELECT 
       pc.name AS category_name,
-      p.*
+      p.*,
+      COALESCE(r.total_review, 0) AS total_review,
+      COALESCE(o.total_order, 0) AS total_order
     FROM products p
     LEFT JOIN product_categories pc
       ON pc.id = p.category_id
+
+    -- Reviews count
+    LEFT JOIN (
+      SELECT 
+        target_id,
+        COUNT(*) AS total_review
+      FROM reviews
+      WHERE type = 'product'
+      GROUP BY target_id
+    ) r ON r.target_id = p.id
+
+    -- Orders count
+    LEFT JOIN (
+      SELECT 
+        product_id,
+        COUNT(*) AS total_order
+      FROM order_items
+      GROUP BY product_id
+    ) o ON o.product_id = p.id
+
     WHERE p.seller_id = ?;
   `;
 
@@ -244,6 +266,8 @@ exports.getStoreDetails = (sellerId, callback) => {
           main_image_url: row.main_image_url,
           gallery_images: row.gallery_images,
           category_id: row.category_id,
+          total_review: row.total_review, // ✅ added
+          total_order: row.total_order,   // ✅ added
           created_at: row.created_at
         });
       }
@@ -263,4 +287,5 @@ exports.getStoreDetails = (sellerId, callback) => {
     });
   });
 };
+
 

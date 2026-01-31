@@ -32,14 +32,42 @@ exports.getallProducts = (userId, callback) => {
       p.created_at,
       p.main_image_url,
       p.price, 
+
+      -- favourite flag
       CASE 
         WHEN fp.id IS NOT NULL THEN TRUE 
         ELSE FALSE 
-      END AS is_favourite
+      END AS is_favourite,
+
+      -- counts
+      COALESCE(r.total_review, 0) AS total_review,
+      COALESCE(o.total_order, 0) AS total_order
+
     FROM products p
+
     LEFT JOIN favourites_product fp 
       ON p.id = fp.product_id 
       AND fp.user_id = ?
+
+    -- reviews count
+    LEFT JOIN (
+      SELECT 
+        target_id,
+        COUNT(*) AS total_review
+      FROM reviews
+      WHERE type = 'product'
+      GROUP BY target_id
+    ) r ON r.target_id = p.id
+
+    -- orders count
+    LEFT JOIN (
+      SELECT 
+        product_id,
+        COUNT(*) AS total_order
+      FROM order_items
+      GROUP BY product_id
+    ) o ON o.product_id = p.id
+
     WHERE p.admin_approval = 1;
   `;
 
@@ -53,17 +81,42 @@ exports.getallProducts = (userId, callback) => {
 exports.getProductbyID = (productId, userId, callback) => {
   const sql = `
     SELECT 
-      p.*, 
-      CASE WHEN fp.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_favourite
+      p.*,
+      CASE 
+        WHEN fp.id IS NOT NULL THEN TRUE 
+        ELSE FALSE 
+      END AS is_favourite,
+      COALESCE(r.total_review, 0) AS total_review,
+      COALESCE(o.total_order, 0) AS total_order
     FROM products p
+
     LEFT JOIN favourites_product fp 
-      ON p.id = fp.product_id AND fp.user_id = ?
-    WHERE p.id = ?
+      ON p.id = fp.product_id 
+      AND fp.user_id = ?
+
+    LEFT JOIN (
+      SELECT 
+        target_id,
+        COUNT(*) AS total_review
+      FROM reviews
+      WHERE type = 'product'
+      GROUP BY target_id
+    ) r ON r.target_id = p.id
+
+    LEFT JOIN (
+      SELECT 
+        product_id,
+        COUNT(*) AS total_order
+      FROM order_items
+      GROUP BY product_id
+    ) o ON o.product_id = p.id
+
+    WHERE p.id = ?;
   `;
 
   db.query(sql, [userId, productId], (err, results) => {
     if (err) return callback(err, null);
-    return callback(null, results[0]); // single product with is_favourite flag
+    return callback(null, results[0]); // single product with flags + counts
   });
 };
 
