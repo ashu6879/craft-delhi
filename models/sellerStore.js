@@ -206,17 +206,23 @@ exports.getStoreDetails = (sellerId, callback) => {
     SELECT 
       pc.name AS category_name,
       p.*,
+
       COALESCE(r.total_review, 0) AS total_review,
+      COALESCE(r.avg_rating, 0) AS average_rating,
+
       COALESCE(o.total_order, 0) AS total_order
+
     FROM products p
+
     LEFT JOIN product_categories pc
       ON pc.id = p.category_id
 
-    -- Reviews count
+    -- Reviews count + average rating
     LEFT JOIN (
       SELECT 
         target_id,
-        COUNT(*) AS total_review
+        COUNT(*) AS total_review,
+        ROUND(AVG(rating), 1) AS avg_rating
       FROM reviews
       WHERE type = 'product'
       GROUP BY target_id
@@ -254,7 +260,7 @@ exports.getStoreDetails = (sellerId, callback) => {
           id: row.id,
           name: row.name,
           seller_id: row.seller_id,
-          storeId: row.seller_id, // frontend friendly
+          storeId: row.seller_id,
           product_sku: row.product_sku,
           description: row.description,
           price: row.price,
@@ -266,8 +272,11 @@ exports.getStoreDetails = (sellerId, callback) => {
           main_image_url: row.main_image_url,
           gallery_images: row.gallery_images,
           category_id: row.category_id,
-          total_review: row.total_review, // ✅ added
-          total_order: row.total_order,   // ✅ added
+
+          total_review: row.total_review,      // ✅
+          average_rating: row.average_rating,  // ✅ NEW
+          total_order: row.total_order,        // ✅
+
           created_at: row.created_at
         });
       }

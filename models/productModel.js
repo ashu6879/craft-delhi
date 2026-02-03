@@ -39,8 +39,13 @@ exports.getallProducts = (userId, callback) => {
         ELSE FALSE 
       END AS is_favourite,
 
-      -- counts
+      -- review count
       COALESCE(r.total_review, 0) AS total_review,
+
+      -- average rating (out of 5)
+      COALESCE(r.avg_rating, 0) AS average_rating,
+
+      -- order count
       COALESCE(o.total_order, 0) AS total_order
 
     FROM products p
@@ -49,11 +54,12 @@ exports.getallProducts = (userId, callback) => {
       ON p.id = fp.product_id 
       AND fp.user_id = ?
 
-    -- reviews count
+    -- reviews count + average rating
     LEFT JOIN (
       SELECT 
         target_id,
-        COUNT(*) AS total_review
+        COUNT(*) AS total_review,
+        ROUND(AVG(rating), 1) AS avg_rating
       FROM reviews
       WHERE type = 'product'
       GROUP BY target_id
@@ -77,17 +83,20 @@ exports.getallProducts = (userId, callback) => {
   });
 };
 
-
 exports.getProductbyID = (productId, userId, callback) => {
   const sql = `
     SELECT 
       p.*,
+
       CASE 
         WHEN fp.id IS NOT NULL THEN TRUE 
         ELSE FALSE 
       END AS is_favourite,
+
       COALESCE(r.total_review, 0) AS total_review,
+      COALESCE(r.avg_rating, 0) AS average_rating,
       COALESCE(o.total_order, 0) AS total_order
+
     FROM products p
 
     LEFT JOIN favourites_product fp 
@@ -97,7 +106,8 @@ exports.getProductbyID = (productId, userId, callback) => {
     LEFT JOIN (
       SELECT 
         target_id,
-        COUNT(*) AS total_review
+        COUNT(*) AS total_review,
+        ROUND(AVG(rating), 1) AS avg_rating
       FROM reviews
       WHERE type = 'product'
       GROUP BY target_id
@@ -116,9 +126,10 @@ exports.getProductbyID = (productId, userId, callback) => {
 
   db.query(sql, [userId, productId], (err, results) => {
     if (err) return callback(err, null);
-    return callback(null, results[0]); // single product with flags + counts
+    return callback(null, results[0]);
   });
 };
+
 
 exports.getProductbyIDforVerify = (productId, callback) => {
   const sql = `
