@@ -32,6 +32,7 @@ exports.getallProducts = (userId, callback) => {
       p.created_at,
       p.main_image_url,
       p.price, 
+      s.store_name,
 
       -- favourite flag
       CASE 
@@ -74,6 +75,8 @@ exports.getallProducts = (userId, callback) => {
       GROUP BY product_id
     ) o ON o.product_id = p.id
 
+    LEFT JOIN seller_stores s ON s.seller_id = p.seller_id
+
     WHERE p.admin_approval = 1;
   `;
 
@@ -87,6 +90,7 @@ exports.getProductbyID = (productId, userId, callback) => {
   const sql = `
     SELECT 
       p.*,
+      s.store_name,
 
       CASE 
         WHEN fp.id IS NOT NULL THEN TRUE 
@@ -120,6 +124,7 @@ exports.getProductbyID = (productId, userId, callback) => {
       FROM order_items
       GROUP BY product_id
     ) o ON o.product_id = p.id
+    LEFT JOIN seller_stores s ON s.seller_id = p.seller_id
 
     WHERE p.id = ?;
   `;
