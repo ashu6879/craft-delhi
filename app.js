@@ -13,6 +13,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const webhookHandler = require('./utils/webhook');
 const orderTrackingRoutes = require('./routes/orderTrackingRoutes');
 const reviewsRoutes = require('./routes/reviewsRoutes');
+const giftCategories = require('./routes/giftCategoriesRoutes');
 
 
 
@@ -33,5 +34,6 @@ app.use('/api/order', orders);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/order-tracking', orderTrackingRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/gift-categories', giftCategories);
 
 module.exports = app;
