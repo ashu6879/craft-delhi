@@ -66,14 +66,6 @@ exports.createGiftCategory = async (req, res) => {
 };
 // ✅ Get All Gift Categories (Admin Only)
 exports.getAllGiftCategories = (req, res) => {
-  const role = req.user.role;
-
-  if (role != process.env.Admin_role_id) {
-    return res.status(403).json({
-      success: false,
-      message: 'Unauthorized'
-    });
-  }
 
   GiftCategories.getAllGiftCategories((err, categories) => {
     if (err) {
@@ -95,14 +87,6 @@ exports.getAllGiftCategories = (req, res) => {
 
 // ✅ Get Gift Category By ID (Admin Only)
 exports.getGiftCategoryById = (req, res) => {
-  const role = req.user.role;
-
-  if (role != process.env.Admin_role_id) {
-    return res.status(403).json({
-      success: false,
-      message: 'Unauthorized'
-    });
-  }
 
   const { id } = req.params;
 
