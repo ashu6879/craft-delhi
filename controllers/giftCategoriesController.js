@@ -130,13 +130,6 @@ exports.updateGiftCategory = async (req, res) => {
     const { id } = req.params;
     const { title, slug, description } = req.body;
 
-    if (!title || !slug) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title and slug are required'
-      });
-    }
-
     // 🔎 Get existing category
     GiftCategories.getGiftCategoryById(id, async (err, category) => {
       if (err || !category || category.length === 0) {
@@ -148,17 +141,26 @@ exports.updateGiftCategory = async (req, res) => {
 
       const existingCategory = category[0];
 
-      const updateData = {
-        title,
-        slug,
-        description
-      };
+      // ✅ Build update object dynamically
+      const updateData = {};
+
+      if (title !== undefined) updateData.title = title;
+      if (slug !== undefined) updateData.slug = slug;
+      if (description !== undefined) updateData.description = description;
+
+      // ❗ If nothing provided
+      if (Object.keys(updateData).length === 0 && !req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'At least one field is required to update'
+        });
+      }
 
       try {
         // 🖼️ If new image uploaded
         if (req.file) {
 
-          // 1️⃣ Delete old image from S3
+          // Delete old image from S3
           if (existingCategory.gift_image) {
             await deleteFilesFromS3(
               [existingCategory.gift_image],
@@ -166,7 +168,7 @@ exports.updateGiftCategory = async (req, res) => {
             );
           }
 
-          // 2️⃣ Upload new image to S3
+          // Upload new image
           const uploadedImage = await uploadToS3(req.file, 'gift_image');
           updateData.gift_image = uploadedImage;
         }
@@ -212,6 +214,7 @@ exports.updateGiftCategory = async (req, res) => {
     });
   }
 };
+
 
 // ✅ Delete Gift Category (Admin Only)
 exports.deleteGiftCategory = async (req, res) => {
