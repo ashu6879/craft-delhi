@@ -6,6 +6,6 @@ const { verifyTokenforactions } = require('../utils/authMiddleware');
 router.post('/add',verifyTokenforactions, reviewsController.createReview);
 router.get('/get',verifyTokenforactions, reviewsController.getReview);
 router.get('/getbyuserid/:id',verifyTokenforactions, reviewsController.getReviewsbyUserId);
-router.get('/getbyproductid/:id',verifyTokenforactions, reviewsController.getReviewsbyProductId);
+router.get('/getbyproductid/:id', reviewsController.getReviewsbyProductId);
 
 module.exports = router;
