@@ -206,18 +206,22 @@ exports.getStoreDetails = (sellerId, callback) => {
     SELECT 
       pc.name AS category_name,
       p.*,
+      ss.store_created_date,
 
       COALESCE(r.total_review, 0) AS total_review,
       COALESCE(r.avg_rating, 0) AS average_rating,
 
-      COALESCE(o.total_order, 0) AS total_order
+      COALESCE(o.total_order, 0) AS total_order,
+
+      -- Seller Positive Rating %
+      COALESCE(sr.positive_rating_percentage, 0) AS seller_positive_rating_percentage
 
     FROM products p
 
     LEFT JOIN product_categories pc
       ON pc.id = p.category_id
 
-    -- Reviews count + average rating
+    -- Product Reviews count + average rating
     LEFT JOIN (
       SELECT 
         target_id,
@@ -236,6 +240,23 @@ exports.getStoreDetails = (sellerId, callback) => {
       FROM order_items
       GROUP BY product_id
     ) o ON o.product_id = p.id
+
+    -- Seller Store Info
+    LEFT JOIN seller_stores ss 
+      ON ss.seller_id = p.seller_id
+
+    -- Seller Positive Rating %
+    LEFT JOIN (
+      SELECT 
+        target_id AS seller_id,
+        ROUND(
+          (SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) * 100.0) 
+          / COUNT(*), 
+        2) AS positive_rating_percentage
+      FROM reviews
+      WHERE type = 'seller'
+      GROUP BY target_id
+    ) sr ON sr.seller_id = p.seller_id
 
     WHERE p.seller_id = ?;
   `;
@@ -276,7 +297,8 @@ exports.getStoreDetails = (sellerId, callback) => {
           total_review: row.total_review,      // ✅
           average_rating: row.average_rating,  // ✅ NEW
           total_order: row.total_order,        // ✅
-
+          store_created_date: row.store_created_date,
+          positive_rating_percentage: row.seller_positive_rating_percentage,  // ✅ NEW  
           created_at: row.created_at
         });
       }
