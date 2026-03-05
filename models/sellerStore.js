@@ -207,6 +207,9 @@ exports.getStoreDetails = (sellerId, callback) => {
       pc.name AS category_name,
       p.*,
       ss.store_created_date,
+      ss.description AS store_description,
+      ss.store_name,
+      ss.store_image,
 
       COALESCE(r.total_review, 0) AS total_review,
       COALESCE(r.avg_rating, 0) AS average_rating,
@@ -268,11 +271,25 @@ exports.getStoreDetails = (sellerId, callback) => {
     const productsMap = new Map();
     const videos = new Set();
     const reels = new Set();
+    const storesMap = new Map(); // ✅ store data
 
     results.forEach(row => {
+
       // Categories
       if (row.category_name) {
         categoriesSet.add(row.category_name);
+      }
+
+      // Store Data
+      if (!storesMap.has(row.seller_id)) {
+        storesMap.set(row.seller_id, {
+          store_id: row.seller_id,
+          store_name: row.store_name,
+          store_image: row.store_image,
+          store_description: row.store_description,
+          store_created_date: row.store_created_date,
+          positive_rating_percentage: row.seller_positive_rating_percentage
+        });
       }
 
       // Products (unique by SKU)
@@ -294,11 +311,10 @@ exports.getStoreDetails = (sellerId, callback) => {
           gallery_images: row.gallery_images,
           category_id: row.category_id,
 
-          total_review: row.total_review,      // ✅
-          average_rating: row.average_rating,  // ✅ NEW
-          total_order: row.total_order,        // ✅
-          store_created_date: row.store_created_date,
-          positive_rating_percentage: row.seller_positive_rating_percentage,  // ✅ NEW  
+          total_review: row.total_review,
+          average_rating: row.average_rating,
+          total_order: row.total_order,
+
           created_at: row.created_at
         });
       }
@@ -311,6 +327,7 @@ exports.getStoreDetails = (sellerId, callback) => {
     callback(null, {
       categories: [...categoriesSet],
       products: [...productsMap.values()],
+      store_data: [...storesMap.values()], // ✅ separate store array
       media: {
         videos: [...videos],
         reels: [...reels]
