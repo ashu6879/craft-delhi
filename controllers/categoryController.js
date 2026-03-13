@@ -179,6 +179,7 @@ exports.deleteCategory = (req, res) => {
 
 // UPDATE Category
 exports.updateCategory = (req, res) => {
+  console.log("aaya")
   const { category_id } = req.params;
   const { name } = req.body;
 
