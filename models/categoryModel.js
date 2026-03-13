@@ -29,7 +29,7 @@ exports.createCategory = (name, createdBy, creatorId, callback) => {
 };
 
 exports.getallCategories = (callback) => {
-  const sql = 'SELECT * FROM product_categories'; // Adjust table name if needed
+  const sql = 'SELECT * FROM product_categories where parent_id is null'; // Adjust table name if needed
   db.query(sql, (err, results) => {
     if (err) return callback(err, null);
     return callback(null, results);
@@ -37,7 +37,7 @@ exports.getallCategories = (callback) => {
 };
 
 exports.getCategorybyID = (id, callback) => {
-  const sql = 'SELECT * FROM product_categories WHERE id = ?';
+  const sql = 'SELECT * FROM product_categories WHERE id = ? and parent_id is null';
   db.query(sql, [id], (err, results) => {
     if (err) return callback(err, null);
     return callback(null, results[0]); // assuming you want a single product
