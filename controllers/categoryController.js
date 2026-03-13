@@ -3,7 +3,6 @@ const authorizeAction = require('../utils/authorizeAction');
 
 
 exports.createCategory = (req, res) => {
-  console.log("aaya")
   const { categoryName, sellerId } = req.body;
 
   if (!categoryName) {
@@ -111,7 +110,7 @@ exports.deleteCategory = (req, res) => {
   }
 
   // ✅ Admin direct delete
-  if (Number(userRole) === Number(process.env.ADMIN_ROLE_ID)) {
+  if (Number(userRole) === Number(process.env.Admin_role_id)) {
 
     return Category.deleteCategoryID(category_id, (err, result) => {
 
@@ -180,7 +179,6 @@ exports.deleteCategory = (req, res) => {
 
 // UPDATE Category
 exports.updateCategory = (req, res) => {
-  console.log("aaya")
   const { category_id } = req.params;
   const { name } = req.body;
 
@@ -194,10 +192,8 @@ exports.updateCategory = (req, res) => {
   if (!name || name.trim() === '') {
     return res.status(400).json({ status: false, message: 'Category name is required' });
   }
-  console.log("userRole",userRole)
-  console.log("userRole",process.env.ADMIN_ROLE_ID)
   // ✅ If Admin → skip ownership check
-  if (userRole == process.env.ADMIN_ROLE_ID) {
+  if (userRole == process.env.Admin_role_id) {
     Category.updateCategoryByID(category_id, { name }, (err, result) => {
       if (err) {
         return res.status(500).json({
@@ -327,7 +323,7 @@ exports.deleteSubCategory = (req, res) => {
   }
 
   // ✅ Admin can delete directly
-  if (Number(userRole) === Number(process.env.ADMIN_ROLE_ID)) {
+  if (Number(userRole) === Number(process.env.Admin_role_id)) {
 
     return Category.deleteSubCategoryByID(subcategory_id, (err, result) => {
 
@@ -423,7 +419,7 @@ exports.updateSubCategory = (req, res) => {
   }
 
   // ✅ Admin direct update
-  if (Number(userRole) === Number(process.env.ADMIN_ROLE_ID)) {
+  if (Number(userRole) === Number(process.env.Admin_role_id)) {
 
     return Category.updateSubCategoryByID(subcategory_id, { name }, (err, result) => {
 
