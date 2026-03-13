@@ -3,6 +3,7 @@ const authorizeAction = require('../utils/authorizeAction');
 
 
 exports.createCategory = (req, res) => {
+  console.log("aaya")
   const { categoryName, sellerId } = req.body;
 
   if (!categoryName) {
