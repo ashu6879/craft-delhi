@@ -702,7 +702,6 @@ exports.getActiveBanners = (callback) => {
   const sql = `
     SELECT *
     FROM banners
-    WHERE status = 1
     ORDER BY position ASC
   `;
 
