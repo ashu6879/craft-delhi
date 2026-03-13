@@ -192,7 +192,8 @@ exports.updateCategory = (req, res) => {
   if (!name || name.trim() === '') {
     return res.status(400).json({ status: false, message: 'Category name is required' });
   }
-
+  console.log("userRole",userRole)
+  console.log("userRole",process.env.ADMIN_ROLE_ID)
   // ✅ If Admin → skip ownership check
   if (userRole == process.env.ADMIN_ROLE_ID) {
     Category.updateCategoryByID(category_id, { name }, (err, result) => {
