@@ -4,7 +4,7 @@ const authorizeAction = require('../utils/authorizeAction');
 
 exports.createCategory = (req, res) => {
   const { categoryName } = req.body;
-  const { sellerId } = req.user.id;
+  const sellerId  = req.user?.id;
   if (!categoryName) {
     return res.status(400).json({ message: 'categoryName is required' });
   }
@@ -258,7 +258,7 @@ exports.updateCategory = (req, res) => {
 
 exports.createSubCategory = (req, res) => {
   const { name, parent_id } = req.body;
-  const { sellerId } = req.user.id;
+  const  sellerId  = req.user?.id;
 
   if (!name || !parent_id) {
     return res.status(400).json({

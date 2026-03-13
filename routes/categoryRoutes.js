@@ -4,9 +4,9 @@ const categoryController = require('../controllers/categoryController');
 const { verifyToken } = require('../utils/authMiddleware');
 const { verifyTokenforactions } = require('../utils/authMiddleware');
 
-router.post('/create',verifyToken ,categoryController.createCategory);
-router.get('/get',verifyToken ,categoryController.getCategories);
-router.get('/getbyid/:category_id',verifyToken ,categoryController.getCategoryID);
+router.post('/create',verifyTokenforactions ,categoryController.createCategory);
+router.get('/get' ,categoryController.getCategories);
+router.get('/getbyid/:category_id' ,categoryController.getCategoryID);
 router.delete('/delete/:category_id',verifyTokenforactions  ,categoryController.deleteCategory);
 router.put('/update/:category_id',verifyTokenforactions  ,categoryController.updateCategory);
 router.delete(
