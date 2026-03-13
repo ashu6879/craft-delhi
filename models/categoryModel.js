@@ -76,3 +76,65 @@ exports.updateCategoryByID = (id, data, callback) => {
     return callback(null, results);
   });
 };
+
+exports.createSubCategory = (name, parentId, createdBy, creatorId, callback) => {
+  const query = `
+    INSERT INTO product_categories (name, parent_id, created_by, creator_id)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(query, [name, parentId, createdBy, creatorId], (err, result) => {
+    if (err) return callback(err, null);
+    callback(null, result);
+  });
+};
+
+exports.getSubCategoriesByCategory = (parentId, callback) => {
+  const sql = `SELECT * FROM product_categories WHERE parent_id = ?`;
+
+  db.query(sql, [parentId], (err, results) => {
+    if (err) return callback(err, null);
+    callback(null, results);
+  });
+};
+
+exports.deleteSubCategoryByID = (id, callback) => {
+  const sql = `
+    DELETE FROM product_categories
+    WHERE id = ? AND parent_id IS NOT NULL
+  `;
+
+  db.query(sql, [id], (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results);
+  });
+};
+
+exports.updateSubCategoryByID = (id, data, callback) => {
+  const fields = [];
+  const values = [];
+
+  for (let key in data) {
+    if (data[key] !== undefined) {
+      fields.push(`${key} = ?`);
+      values.push(data[key]);
+    }
+  }
+
+  if (fields.length === 0) {
+    return callback(null, { affectedRows: 0 });
+  }
+
+  const sql = `
+    UPDATE product_categories 
+    SET ${fields.join(', ')} 
+    WHERE id = ? AND parent_id IS NOT NULL
+  `;
+
+  values.push(id);
+
+  db.query(sql, values, (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results);
+  });
+};

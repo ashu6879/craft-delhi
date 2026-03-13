@@ -225,7 +225,7 @@ exports.getStoreDetails = (sellerId, callback) => {
       ON pc.id = p.category_id
 
     -- Product Reviews count + average rating
-    LEFT JOIN (
+    LEFT JOIN (ca
       SELECT 
         target_id,
         COUNT(*) AS total_review,

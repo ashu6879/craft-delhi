@@ -9,5 +9,19 @@ router.get('/get',verifyToken ,categoryController.getCategories);
 router.get('/getbyid/:category_id',verifyToken ,categoryController.getCategoryID);
 router.delete('/delete/:category_id',verifyTokenforactions  ,categoryController.deleteCategory);
 router.put('/update/:category_id',verifyTokenforactions  ,categoryController.updateCategory);
+router.delete(
+  '/delete-subcategory/:subcategory_id',
+  verifyTokenforactions,
+  categoryController.deleteSubCategory
+);
+
+router.put(
+  '/update-subcategory/:subcategory_id',
+  verifyTokenforactions,
+  categoryController.updateSubCategory
+)
+router.post('/create-subcategory', verifyToken, categoryController.createSubCategory);
+
+router.get('/subcategories/:category_id', categoryController.getSubCategories);
 
 module.exports = router;
