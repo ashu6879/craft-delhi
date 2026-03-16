@@ -32,15 +32,21 @@ exports.sendOtp = (req, res) => {
       }
       saveAndSendOtp();
     } else {
-      if (!userExists) {
-        // Create email record before saving OTP
-        userModel.createEmailOnlyUser(email, (e) => {
-          if (e) return res.status(500).json({ status: false, error: e });
-          saveAndSendOtp();
+
+      // EMAIL VERIFICATION (SIGNUP FLOW)
+      if (userExists) {
+        return res.status(400).json({
+          status: false,
+          message: 'Email already in use'
         });
-      } else {
-        saveAndSendOtp();
       }
+
+      // create email-only user then send OTP
+      userModel.createEmailOnlyUser(email, (e) => {
+        if (e) return res.status(500).json({ status: false, error: e });
+        saveAndSendOtp();
+      });
+
     }
   });
 

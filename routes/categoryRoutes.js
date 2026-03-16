@@ -23,5 +23,6 @@ router.put(
 router.post('/create-subcategory', verifyToken, categoryController.createSubCategory);
 
 router.get('/subcategories/:category_id', categoryController.getSubCategories);
+router.get('/:category_id', categoryController.getProductsbyCatSubcatID);
 
 module.exports = router;

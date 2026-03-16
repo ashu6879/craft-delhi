@@ -19,6 +19,7 @@ exports.getallProducts = (userId, callback) => {
       p.product_sku,
       p.description,
       p.category_id,
+      pc.name AS category_name,
       p.stock,
       p.dimension,
       p.package_weight,
@@ -76,6 +77,7 @@ exports.getallProducts = (userId, callback) => {
     ) o ON o.product_id = p.id
 
     LEFT JOIN seller_stores s ON s.seller_id = p.seller_id
+    LEFT JOIN product_categories pc ON pc.id = p.category_id
 
     WHERE p.admin_approval = 1;
   `;
@@ -90,6 +92,7 @@ exports.getProductbyID = (productId, userId, callback) => {
   const sql = `
     SELECT 
       p.*,
+      pc.name AS category_name,
       s.store_name,
 
       CASE 
@@ -125,6 +128,7 @@ exports.getProductbyID = (productId, userId, callback) => {
       GROUP BY product_id
     ) o ON o.product_id = p.id
     LEFT JOIN seller_stores s ON s.seller_id = p.seller_id
+    LEFT JOIN product_categories pc ON pc.id = p.category_id
 
     WHERE p.id = ?;
   `;

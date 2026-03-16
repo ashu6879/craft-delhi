@@ -493,3 +493,30 @@ exports.updateSubCategory = (req, res) => {
 
   });
 };
+
+exports.getProductsbyCatSubcatID = (req, res) => {
+  const id = req.user ? req.user.id : null;
+  const { category_id } = req.params;
+
+  if (!category_id) {
+    return res.status(400).json({
+      status: false,
+      message: "Category ID required"
+    });
+  }
+
+  Category.getProductByCategory(category_id, id, (err, data) => {
+    if (err) {
+      return res.status(500).json({
+        status: false,
+        message: "Server error"
+      });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "Products fetched successfully",
+      data
+    });
+  });
+};
