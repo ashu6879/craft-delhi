@@ -139,27 +139,18 @@ exports.updateSubCategoryByID = (id, data, callback) => {
   });
 };
 
-exports.getProductByCategory = (category_id, user_id, callback) => {
+exports.getProductByCategory = (category_id, callback) => {
   const sql = `
     SELECT 
       p.*,
       pc.name AS category_name,
       s.store_name,
 
-      CASE 
-        WHEN fp.id IS NOT NULL THEN TRUE 
-        ELSE FALSE 
-      END AS is_favourite,
-
       COALESCE(r.total_review, 0) AS total_review,
       COALESCE(r.avg_rating, 0) AS average_rating,
       COALESCE(o.total_order, 0) AS total_order
 
     FROM products p
-
-    LEFT JOIN favourites_product fp 
-      ON p.id = fp.product_id 
-      AND fp.user_id = ?
 
     LEFT JOIN (
       SELECT 
@@ -185,7 +176,7 @@ exports.getProductByCategory = (category_id, user_id, callback) => {
     WHERE p.category_id = ?;
   `;
 
-  db.query(sql, [user_id, category_id], (err, results) => {
+  db.query(sql, [ category_id], (err, results) => {
     if (err) return callback(err, null);
     return callback(null, results);
   });

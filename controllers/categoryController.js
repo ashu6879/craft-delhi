@@ -495,7 +495,6 @@ exports.updateSubCategory = (req, res) => {
 };
 
 exports.getProductsbyCatSubcatID = (req, res) => {
-  const id = req.user ? req.user.id : null;
   const { category_id } = req.params;
 
   if (!category_id) {
@@ -505,7 +504,7 @@ exports.getProductsbyCatSubcatID = (req, res) => {
     });
   }
 
-  Category.getProductByCategory(category_id, id, (err, data) => {
+  Category.getProductByCategory(category_id, (err, data) => {
     if (err) {
       return res.status(500).json({
         status: false,

@@ -51,5 +51,10 @@ router.delete(
   giftCategoriesController.deleteGiftCategory
 );
 
+router.get(
+  '/getproductbygiftslug/:slug',
+  giftCategoriesController.getProductbyGiftSlug
+);
+
 
 module.exports = router;

@@ -98,3 +98,46 @@ exports.deleteGiftCategory = (id, callback) => {
 
   db.query(sql, [id], callback);
 };
+
+exports.getProductbyGiftSlug = (slug, callback) => {
+  const sql = `
+    SELECT 
+      p.*,
+      pc.name AS category_name,
+      s.store_name,
+
+      COALESCE(r.total_review, 0) AS total_review,
+      COALESCE(r.avg_rating, 0) AS average_rating,
+      COALESCE(o.total_order, 0) AS total_order
+
+    FROM products p
+
+    LEFT JOIN (
+      SELECT 
+        target_id,
+        COUNT(*) AS total_review,
+        ROUND(AVG(rating), 1) AS avg_rating
+      FROM reviews
+      WHERE type = 'product'
+      GROUP BY target_id
+    ) r ON r.target_id = p.id
+
+    LEFT JOIN (
+      SELECT 
+        product_id,
+        COUNT(*) AS total_order
+      FROM order_items
+      GROUP BY product_id
+    ) o ON o.product_id = p.id
+
+    LEFT JOIN seller_stores s ON s.seller_id = p.seller_id
+    LEFT JOIN product_categories pc ON pc.id = p.category_id
+
+    WHERE JSON_SEARCH(p.hashtags, 'one', ?) IS NOT NULL;
+  `;
+
+  db.query(sql, [slug], (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results);
+  });
+};

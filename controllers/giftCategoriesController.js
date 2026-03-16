@@ -342,4 +342,31 @@ exports.updateGiftCategoryStatus = async (req, res) => {
   }
 };
 
+exports.getProductbyGiftSlug = (req, res) => {
+
+  const { slug } = req.params;
+
+  GiftCategories.getProductbyGiftSlug(slug, (err, product) => {
+    if (err) {
+      console.error('Fetch Error:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+
+    if (!product || product.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'products not found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: product
+    });
+  });
+};
+
 
