@@ -173,7 +173,13 @@ exports.getProductByCategory = (category_id, callback) => {
     LEFT JOIN seller_stores s ON s.seller_id = p.seller_id
     LEFT JOIN product_categories pc ON pc.id = p.category_id
 
-    WHERE p.category_id = ?;
+    -- 🔥 Important join for subcategories
+    LEFT JOIN product_categories sub 
+      ON sub.parent_id = ?
+
+    WHERE 
+      p.category_id = ? 
+      OR p.category_id = sub.id;
   `;
 
   db.query(sql, [ category_id], (err, results) => {
