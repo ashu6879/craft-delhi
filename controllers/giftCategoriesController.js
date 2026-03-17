@@ -12,19 +12,35 @@ exports.createGiftCategory = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    const { title, slug, description } = req.body;
+    const slugify = require('slugify');
+    const { title, description } = req.body;
+
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title is required'
+      });
+    }
 
     let gift_image = null;
 
-    if (!title || !slug) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title and slug are required'
-      });
-    }
-    
+    // ✅ base slug
+    let baseSlug = slugify(title, { lower: true, strict: true });
 
-    // ✅ If file exists, upload to S3 manually
+    let slug = baseSlug;
+    let counter = 1;
+
+    // ✅ CREATE → no id check needed
+    while (true) {
+      const existing = await GiftCategories.checkSlugExists(slug);
+
+      if (!existing) break;
+
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    // ✅ upload image
     if (req.file) {
       gift_image = await uploadToS3(req.file, 'gift_image');
     }
@@ -33,15 +49,14 @@ exports.createGiftCategory = async (req, res) => {
       { title, slug, description, gift_image },
       (err, result) => {
         if (err) {
-
           if (err.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({
               success: false,
-              message: 'Slug already exists. Please use a different slug.'
+              message: 'Slug already exists.'
             });
           }
 
-          console.error('Create Error:', err);
+          console.error(err);
           return res.status(500).json({
             success: false,
             message: 'Server error'
@@ -57,10 +72,10 @@ exports.createGiftCategory = async (req, res) => {
     );
 
   } catch (error) {
-    console.error('Upload Error:', error);
+    console.error(error);
     return res.status(500).json({
       success: false,
-      message: 'Server error during upload'
+      message: 'Server error'
     });
   }
 };
@@ -127,10 +142,11 @@ exports.updateGiftCategory = async (req, res) => {
       });
     }
 
-    const { id } = req.params;
-    const { title, slug, description } = req.body;
+    const slugify = require('slugify'); // ✅ missing import
 
-    // 🔎 Get existing category
+    const { id } = req.params;
+    const { title, description } = req.body;
+
     GiftCategories.getGiftCategoryById(id, async (err, category) => {
       if (err || !category || category.length === 0) {
         return res.status(404).json({
@@ -140,27 +156,41 @@ exports.updateGiftCategory = async (req, res) => {
       }
 
       const existingCategory = category[0];
-
-      // ✅ Build update object dynamically
       const updateData = {};
 
-      if (title !== undefined) updateData.title = title;
-      if (slug !== undefined) updateData.slug = slug;
-      if (description !== undefined) updateData.description = description;
+      if (title !== undefined) {
+        updateData.title = title;
 
-      // ❗ If nothing provided
+        let baseSlug = slugify(title, { lower: true, strict: true });
+        let slug = baseSlug;
+        let counter = 1;
+
+        while (true) {
+          const existing = await GiftCategories.checkSlugExists(slug);
+
+          // ✅ allow same record
+          if (!existing || existing.id == id) break;
+
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+
+        updateData.slug = slug;
+      }
+
+      if (description !== undefined) {
+        updateData.description = description;
+      }
+
       if (Object.keys(updateData).length === 0 && !req.file) {
         return res.status(400).json({
           success: false,
-          message: 'At least one field is required to update'
+          message: 'At least one field is required'
         });
       }
 
       try {
-        // 🖼️ If new image uploaded
         if (req.file) {
-
-          // Delete old image from S3
           if (existingCategory.gift_image) {
             await deleteFilesFromS3(
               [existingCategory.gift_image],
@@ -168,23 +198,20 @@ exports.updateGiftCategory = async (req, res) => {
             );
           }
 
-          // Upload new image
           const uploadedImage = await uploadToS3(req.file, 'gift_image');
           updateData.gift_image = uploadedImage;
         }
 
-        // 🔄 Update DB
         GiftCategories.updateGiftCategory(id, updateData, (updateErr) => {
           if (updateErr) {
-
             if (updateErr.code === 'ER_DUP_ENTRY') {
               return res.status(400).json({
                 success: false,
-                message: 'Slug already exists. Please use a different slug.'
+                message: 'Slug already exists.'
               });
             }
 
-            console.error('Update Error:', updateErr);
+            console.error(updateErr);
             return res.status(500).json({
               success: false,
               message: 'Server error'
@@ -198,16 +225,16 @@ exports.updateGiftCategory = async (req, res) => {
         });
 
       } catch (s3Err) {
-        console.error('S3 Update Error:', s3Err);
+        console.error(s3Err);
         return res.status(500).json({
           success: false,
-          message: 'Error updating image'
+          message: 'Image update failed'
         });
       }
     });
 
   } catch (error) {
-    console.error('Update Controller Error:', error);
+    console.error(error);
     return res.status(500).json({
       success: false,
       message: 'Server error'

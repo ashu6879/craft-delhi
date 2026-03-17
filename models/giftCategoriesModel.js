@@ -141,3 +141,14 @@ exports.getProductbyGiftSlug = (slug, callback) => {
     return callback(null, results);
   });
 };
+
+exports.checkSlugExists = (slug) => {
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT id FROM gift_categories WHERE slug = ? LIMIT 1`;
+
+    db.query(sql, [slug], (err, result) => {
+      if (err) return reject(err);
+      resolve(result.length > 0 ? result[0] : null); // 👈 return object instead of boolean
+    });
+  });
+};

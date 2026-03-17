@@ -147,14 +147,34 @@ exports.addProduct = async (req, res) => {
     const cleanSlug = rawSlug.replace(/[^a-zA-Z0-9]/g, '');
     const product_sku = `SKU${cleanSlug}${timestamp}`;
     let productHashtags = [];
+
     if (hashtags) {
       if (Array.isArray(hashtags)) {
-        productHashtags = hashtags.map(tag => tag.trim()).filter(Boolean);
-      } else if (typeof hashtags === "string") {
         productHashtags = hashtags
-          .split(',')
-          .map(tag => tag.trim())
+          .map(tag => tag.replace(/"/g, '').trim()) // remove extra quotes
           .filter(Boolean);
+
+      } else if (typeof hashtags === "string") {
+        try {
+          // Try parsing if it's JSON string
+          const parsed = JSON.parse(hashtags);
+          if (Array.isArray(parsed)) {
+            productHashtags = parsed
+              .map(tag => tag.replace(/"/g, '').trim())
+              .filter(Boolean);
+          } else {
+            productHashtags = hashtags
+              .split(',')
+              .map(tag => tag.replace(/"/g, '').trim())
+              .filter(Boolean);
+          }
+        } catch (err) {
+          // fallback if not JSON
+          productHashtags = hashtags
+            .split(',')
+            .map(tag => tag.replace(/"/g, '').trim())
+            .filter(Boolean);
+        }
       }
     }
 
