@@ -16,13 +16,14 @@ exports.findCategoryByNameAndCreator = (name, createdBy, creatorId, callback) =>
 };
 
 // Insert a new category
-exports.createCategory = (name, createdBy, creatorId, image, callback) => {
-  const query = `
-    INSERT INTO product_categories (name, created_by, creator_id, category_image)
-    VALUES (?, ?, ?, ?)
+exports.createCategory = (name, createdBy, creatorId, category_image, category_description, callback) => {
+  const sql = `
+    INSERT INTO categories 
+    (name, created_by, creator_id, category_image, category_description) 
+    VALUES (?, ?, ?, ?, ?)
   `;
 
-  db.query(query, [name, createdBy, creatorId, image], callback);
+  db.query(sql, [name, createdBy, creatorId, category_image, category_description], callback);
 };
 
 exports.getallCategories = (callback) => {

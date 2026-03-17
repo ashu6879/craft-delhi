@@ -28,7 +28,8 @@ const fieldMap = {
   store_image: { folder: 'store_image', prefix: 'si' },
   profile_image: { folder: 'profile_image', prefix: 'pi' },
   banner: { folder: 'banner', prefix: 'ba' },
-  gift_image: { folder: 'gift_image', prefix: 'gi' }
+  gift_image: { folder: 'gift_image', prefix: 'gi' },
+  category_image: { folder: 'category_image', prefix: 'ci' }
 };
 
 // Custom upload handler

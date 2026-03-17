@@ -14,7 +14,6 @@ router.post(
 router.get('/get' ,categoryController.getCategories);
 router.get('/getbyid/:category_id' ,categoryController.getCategoryID);
 router.delete('/delete/:category_id',verifyTokenforactions  ,categoryController.deleteCategory);
-router.put('/update/:category_id',verifyTokenforactions  ,categoryController.updateCategory);
 router.delete(
   '/delete-subcategory/:subcategory_id',
   verifyTokenforactions,

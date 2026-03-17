@@ -7,7 +7,7 @@ const bucketName = process.env.AWS_BUCKET_NAME;
 
 exports.createCategory = async (req, res) => {
   try {
-    const { categoryName } = req.body;
+    const { categoryName, category_description } = req.body;
     const sellerId = req.user?.id;
 
     if (!categoryName) {
@@ -44,6 +44,7 @@ exports.createCategory = async (req, res) => {
         // ✅ Insert
         Category.createCategory(
           categoryName,
+          category_description,
           createdBy,
           creatorId,
           category_image, // 👈 PASS IMAGE
@@ -195,54 +196,125 @@ exports.deleteCategory = (req, res) => {
 // UPDATE Category
 exports.updateCategory = (req, res) => {
   const { category_id } = req.params;
-  const { name } = req.body;
+  const { name,category_description  } = req.body;
 
+  const userId = req.user?.id;
   const userRole = req.user?.role;
 
   if (!category_id) {
-    return res.status(400).json({ message: 'Category ID required' });
+    return res.status(400).json({
+      status: false,
+      message: 'Category ID required'
+    });
   }
 
-  Category.getCategorybyID(category_id, async (err, category) => {
-    if (err || !category) {
-      return res.status(404).json({ message: 'Category not found' });
+  // ✅ ADMIN: Direct update
+  if (Number(userRole) === Number(process.env.Admin_role_id)) {
+
+    Category.getCategorybyID(category_id, async (err, category) => {
+      if (err || !category) {
+        return res.status(404).json({
+          status: false,
+          message: 'Category not found'
+        });
+      }
+
+      const updateData = {};
+      if (name) updateData.name = name;
+      if (category_description) updateData.category_description = category_description;
+
+      try {
+        // ✅ IMAGE UPDATE
+        if (req.file) {
+          if (category.category_image) {
+            await deleteFilesFromS3(
+              [category.category_image],
+              bucketName
+            );
+          }
+
+          const uploadedImage = await uploadToS3(req.file, 'category_image');
+          updateData.category_image = uploadedImage;
+        }
+
+        Category.updateCategoryByID(category_id, updateData, (err, result) => {
+          if (err) {
+            return res.status(500).json({
+              status: false,
+              message: 'Update failed'
+            });
+          }
+
+          return res.status(200).json({
+            status: true,
+            message: 'Category updated successfully (Admin)'
+          });
+        });
+
+      } catch (err) {
+        return res.status(500).json({
+          status: false,
+          message: 'Image upload failed'
+        });
+      }
+    });
+
+    return;
+  }
+
+  // ✅ NORMAL USER: Owner check
+  authorizeAction(Category, category_id, userId, {
+    getMethod: 'getCategorybyID',
+    ownerField: 'creator_id'
+  }, (authError, category) => {
+
+    if (authError) {
+      return res.status(authError.code).json({
+        status: false,
+        message: authError.message
+      });
     }
 
     const updateData = {};
-
     if (name) updateData.name = name;
 
-    try {
-      // ✅ IMAGE UPDATE
-      if (req.file) {
-        // delete old image
-        if (category.category_image) {
-          await deleteFilesFromS3(
-            [category.category_image],
-            bucketName
-          );
+    (async () => {
+      try {
+        // ✅ IMAGE UPDATE
+        if (req.file) {
+          if (category.category_image) {
+            await deleteFilesFromS3(
+              [category.category_image],
+              bucketName
+            );
+          }
+
+          const uploadedImage = await uploadToS3(req.file, 'category_image');
+          updateData.category_image = uploadedImage;
         }
 
-        const uploadedImage = await uploadToS3(req.file, 'category_image');
-        updateData.category_image = uploadedImage;
-      }
+        Category.updateCategoryByID(category_id, updateData, (err, result) => {
+          if (err) {
+            return res.status(500).json({
+              status: false,
+              message: 'Update failed'
+            });
+          }
 
-      Category.updateCategoryByID(category_id, updateData, (err, result) => {
-        if (err) {
-          return res.status(500).json({ message: 'Update failed' });
-        }
-
-        return res.status(200).json({
-          status: true,
-          message: 'Category updated successfully'
+          return res.status(200).json({
+            status: true,
+            message: 'Category updated successfully'
+          });
         });
-      });
 
-    } catch (err) {
-      return res.status(500).json({
-        message: 'Image upload failed'
-      });
-    }
+      } catch (err) {
+        return res.status(500).json({
+          status: false,
+          message: 'Image upload failed'
+        });
+      }
+    })();
+
   });
 };
 
