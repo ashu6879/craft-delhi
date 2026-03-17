@@ -153,19 +153,14 @@ exports.getProductByCategory = (category_id, callback) => {
     FROM products p
 
     LEFT JOIN (
-      SELECT 
-        target_id,
-        COUNT(*) AS total_review,
-        ROUND(AVG(rating), 1) AS avg_rating
+      SELECT target_id, COUNT(*) AS total_review, ROUND(AVG(rating), 1) AS avg_rating
       FROM reviews
       WHERE type = 'product'
       GROUP BY target_id
     ) r ON r.target_id = p.id
 
     LEFT JOIN (
-      SELECT 
-        product_id,
-        COUNT(*) AS total_order
+      SELECT product_id, COUNT(*) AS total_order
       FROM order_items
       GROUP BY product_id
     ) o ON o.product_id = p.id
@@ -173,17 +168,13 @@ exports.getProductByCategory = (category_id, callback) => {
     LEFT JOIN seller_stores s ON s.seller_id = p.seller_id
     LEFT JOIN product_categories pc ON pc.id = p.category_id
 
-    -- 🔥 Important join for subcategories
     LEFT JOIN product_categories sub 
-      ON sub.parent_id = ?
+      ON sub.id = p.category_id AND sub.parent_id = ?
 
     WHERE 
       p.category_id = ? 
-      OR p.category_id = sub.id;
+      OR sub.id IS NOT NULL;
   `;
 
-  db.query(sql, [ category_id], (err, results) => {
-    if (err) return callback(err, null);
-    return callback(null, results);
-  });
+  db.query(sql, [category_id, category_id], callback);
 };
