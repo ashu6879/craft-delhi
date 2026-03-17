@@ -18,7 +18,7 @@ exports.findCategoryByNameAndCreator = (name, createdBy, creatorId, callback) =>
 // Insert a new category
 exports.createCategory = (name, createdBy, creatorId, category_image, category_description, callback) => {
   const sql = `
-    INSERT INTO categories 
+    INSERT INTO product_categories 
     (name, created_by, creator_id, category_image, category_description) 
     VALUES (?, ?, ?, ?, ?)
   `;

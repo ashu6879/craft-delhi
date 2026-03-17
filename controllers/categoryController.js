@@ -9,7 +9,6 @@ exports.createCategory = async (req, res) => {
   try {
     const { categoryName, category_description } = req.body;
     const sellerId = req.user?.id;
-
     if (!categoryName) {
       return res.status(400).json({ message: 'categoryName is required' });
     }
