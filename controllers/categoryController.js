@@ -42,13 +42,13 @@ exports.createCategory = async (req, res) => {
         }
 
         // ✅ Insert
-        Category.createCategory(
-          categoryName,
-          category_description,
-          createdBy,
-          creatorId,
-          category_image, // 👈 PASS IMAGE
-          (err, result) => {
+          Category.createCategory(
+            categoryName,
+            createdBy,
+            creatorId,
+            category_image,
+            category_description, // ✅ LAST
+            (err, result) => {
             if (err) {
               return res.status(500).json({ message: 'Server error' });
             }
