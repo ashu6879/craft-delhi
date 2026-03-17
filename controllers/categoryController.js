@@ -1,56 +1,71 @@
 const Category = require('../models/categoryModel');
 const authorizeAction = require('../utils/authorizeAction');
+const { uploadToS3 } = require('../utils/s3Uploader');
+const { deleteFilesFromS3 } = require('../utils/deleteFilesFromS3');
+const bucketName = process.env.AWS_BUCKET_NAME;
 
 
-exports.createCategory = (req, res) => {
-  const { categoryName } = req.body;
-  const sellerId  = req.user?.id;
-  if (!categoryName) {
-    return res.status(400).json({ message: 'categoryName is required' });
-  }
+exports.createCategory = async (req, res) => {
+  try {
+    const { categoryName } = req.body;
+    const sellerId = req.user?.id;
 
-  const createdBy = sellerId ? 'seller' : 'admin';
-  const creatorId = sellerId || null;
-
-  // Step 1: Check if category already exists
-  Category.findCategoryByNameAndCreator(categoryName, createdBy, creatorId, (err, existing) => {
-    if (err) {
-      console.error('DB Error:', err);
-      return res.status(500).json({ message: 'Server error' });
+    if (!categoryName) {
+      return res.status(400).json({ message: 'categoryName is required' });
     }
 
-    if (existing.length > 0) {
-      return res.status(409).json({
-        status: false,
-        message: 'Category already exists',
-        category: existing[0]
-      });
+    const createdBy = sellerId ? 'seller' : 'admin';
+    const creatorId = sellerId || null;
+
+    let category_image = null;
+
+    // ✅ Upload image
+    if (req.file) {
+      category_image = await uploadToS3(req.file, 'category_image');
     }
 
-    // Step 2: Insert new category
-    Category.createCategory(categoryName, createdBy, creatorId, (err, insertResult) => {
-      if (err) {
-        console.error('Insert Error:', err);
-        return res.status(500).json({ status: false,message: 'Server error' });
-      }
-
-      const insertedId = insertResult.insertId;
-
-      // Step 3: Fetch inserted category
-      Category.getCategorybyID(insertedId, (err, newCategory) => {
+    // ✅ Check duplicate
+    Category.findCategoryByNameAndCreator(
+      categoryName,
+      createdBy,
+      creatorId,
+      async (err, existing) => {
         if (err) {
-          console.error('Fetch Error:', err);
-          return res.status(500).json({ status: false,message: 'Server error' });
+          return res.status(500).json({ message: 'Server error' });
         }
 
-        res.status(201).json({
-          status: true,
-          message: 'Category created successfully',
-          category: newCategory[0]
-        });
-      });
-    });
-  });
+        if (existing.length > 0) {
+          return res.status(409).json({
+            status: false,
+            message: 'Category already exists'
+          });
+        }
+
+        // ✅ Insert
+        Category.createCategory(
+          categoryName,
+          createdBy,
+          creatorId,
+          category_image, // 👈 PASS IMAGE
+          (err, result) => {
+            if (err) {
+              return res.status(500).json({ message: 'Server error' });
+            }
+
+            return res.status(201).json({
+              status: true,
+              message: 'Category created successfully',
+              category_id: result.insertId
+            });
+          }
+        );
+      }
+    );
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
 };
 
 
@@ -182,77 +197,52 @@ exports.updateCategory = (req, res) => {
   const { category_id } = req.params;
   const { name } = req.body;
 
-  const userId = req.user?.id;
   const userRole = req.user?.role;
 
   if (!category_id) {
-    return res.status(400).json({ status: false, message: 'Category ID is required' });
+    return res.status(400).json({ message: 'Category ID required' });
   }
 
-  if (!name || name.trim() === '') {
-    return res.status(400).json({ status: false, message: 'Category name is required' });
-  }
-  // ✅ If Admin → skip ownership check
-  if (userRole == process.env.Admin_role_id) {
-    Category.updateCategoryByID(category_id, { name }, (err, result) => {
-      if (err) {
-        return res.status(500).json({
-          status: false,
-          message: 'Error updating category',
-          error: err
-        });
-      }
-
-      if (result.affectedRows > 0) {
-        return res.status(200).json({
-          status: true,
-          message: 'Category updated successfully (Admin)'
-        });
-      } else {
-        return res.status(400).json({
-          status: false,
-          message: 'Category update failed'
-        });
-      }
-    });
-
-    return; // stop execution
-  }
-
-  // ✅ Non-admin → check ownership
-  authorizeAction(Category, category_id, userId, {
-    getMethod: 'getCategorybyID',
-    ownerField: 'creator_id'
-  }, (authError, category) => {
-
-    if (authError) {
-      return res.status(authError.code).json({
-        status: false,
-        message: authError.message
-      });
+  Category.getCategorybyID(category_id, async (err, category) => {
+    if (err || !category) {
+      return res.status(404).json({ message: 'Category not found' });
     }
 
-    Category.updateCategoryByID(category_id, { name }, (err, result) => {
-      if (err) {
-        return res.status(500).json({
-          status: false,
-          message: 'Error updating category',
-          error: err
-        });
+    const updateData = {};
+
+    if (name) updateData.name = name;
+
+    try {
+      // ✅ IMAGE UPDATE
+      if (req.file) {
+        // delete old image
+        if (category.category_image) {
+          await deleteFilesFromS3(
+            [category.category_image],
+            bucketName
+          );
+        }
+
+        const uploadedImage = await uploadToS3(req.file, 'category_image');
+        updateData.category_image = uploadedImage;
       }
 
-      if (result.affectedRows > 0) {
+      Category.updateCategoryByID(category_id, updateData, (err, result) => {
+        if (err) {
+          return res.status(500).json({ message: 'Update failed' });
+        }
+
         return res.status(200).json({
           status: true,
           message: 'Category updated successfully'
         });
-      } else {
-        return res.status(400).json({
-          status: false,
-          message: 'Category update failed'
-        });
-      }
-    });
+      });
+
+    } catch (err) {
+      return res.status(500).json({
+        message: 'Image upload failed'
+      });
+    }
   });
 };
 
