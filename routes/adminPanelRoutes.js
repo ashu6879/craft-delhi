@@ -63,6 +63,7 @@ router.post(
   ]),
   adminController.createBanner
 );
+router.get('/auth/me',verifyTokenforactions, adminController.getAdminProfileDetails);
 router.get('/getbanner' ,adminController.getBanners);
 router.get('/getbannerbyid/:banner_id' ,adminController.getBannerByID);
 router.delete('/delete-banner/:banner_id' , verifyTokenforactions ,adminController.deleteBanner);

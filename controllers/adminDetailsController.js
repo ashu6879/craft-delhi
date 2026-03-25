@@ -817,6 +817,23 @@ exports.getBannerByID = (req, res) => {
   });
 };
 
+exports.getAdminProfileDetails = (req, res) => {
+  const user_id = req.user?.id;
+  adminModel.getAdminDetails(user_id,(err, Details) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch Details",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: Details,
+    });
+  });
+};
+
 exports.getBanners = (req, res) => {
   adminModel.getActiveBanners((err, banners) => {
     if (err) {

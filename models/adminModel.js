@@ -711,6 +711,18 @@ exports.getActiveBanners = (callback) => {
   });
 };
 
+exports.getAdminDetails = (user_id,callback) => {
+  const sql = `
+    SELECT *
+    FROM users where id = ? and role = 1
+  `;
+
+  db.query(sql, user_id, (err, results) => {
+    if (err) return callback(err, null);
+    return callback(null, results);
+  });
+};
+
 exports.deleteBannerByID = (bannerId, callback) => {
   const sql = `DELETE FROM banners WHERE id = ?`;
 
