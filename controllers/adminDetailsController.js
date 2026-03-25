@@ -819,6 +819,13 @@ exports.getBannerByID = (req, res) => {
 
 exports.getAdminProfileDetails = (req, res) => {
   const user_id = req.user?.id;
+  const role = req.user?.role;
+  if(role == process.env.Admin_role_id){
+    return res.status(500).json({
+      success: false,
+      message: "you are not admin",
+    });
+  }
   adminModel.getAdminDetails(user_id,(err, Details) => {
     if (err) {
       return res.status(500).json({
