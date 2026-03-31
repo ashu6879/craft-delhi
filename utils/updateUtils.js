@@ -74,9 +74,18 @@ exports.handleOrderAndTrackingUpdate = async (order_id, orderData = {}, tracking
     // 3️⃣ Tracking update
     if (hasTrackingFields) {
       const validTrackingData = {};
+
       Object.keys(trackingData).forEach((key) => {
-        if (trackingData[key] !== undefined && trackingData[key] !== null) {
-          validTrackingData[key] = trackingData[key];
+        const value = trackingData[key];
+
+        // ❌ skip undefined, null, empty string
+        if (value === undefined || value === null || value === '') return;
+
+        // ✅ convert status to number safely
+        if (key === 'status') {
+          validTrackingData[key] = Number(value);
+        } else {
+          validTrackingData[key] = value;
         }
       });
 
@@ -94,8 +103,8 @@ exports.handleOrderAndTrackingUpdate = async (order_id, orderData = {}, tracking
           hasOrderFields
             ? "Order and tracking details updated successfully"
             : hasPaymentFields
-            ? "Payment and tracking details updated successfully"
-            : "Tracking details updated successfully",
+              ? "Payment and tracking details updated successfully"
+              : "Tracking details updated successfully",
       });
     }
 
