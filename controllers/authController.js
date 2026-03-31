@@ -37,7 +37,7 @@ exports.sendOtp = (req, res) => {
         const user = results[0];
 
         // ✅ Case 1: Fully registered user
-        if (user.password && user.first_name) {
+        if (user.is_email_verified && user.password) {
           return res.status(400).json({
             status: false,
             message: 'Email already registered. Please login.'
