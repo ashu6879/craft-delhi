@@ -25,7 +25,6 @@ exports.sendOtp = (req, res) => {
     if (err) return res.status(500).json({ status: false, error: err });
 
     const userExists = Array.isArray(results) && results.length > 0;
-
     if (purpose === 'reset') {
       if (!userExists) {
         return res.status(404).json({ status: false, message: 'Email not found. Cannot reset password.' });
@@ -35,10 +34,18 @@ exports.sendOtp = (req, res) => {
 
       // EMAIL VERIFICATION (SIGNUP FLOW)
       if (userExists) {
-        return res.status(400).json({
-          status: false,
-          message: 'Email already in use'
-        });
+        const user = results[0];
+
+        // ✅ Case 1: Fully registered user
+        if (user.password && user.first_name) {
+          return res.status(400).json({
+            status: false,
+            message: 'Email already registered. Please login.'
+          });
+        }
+
+        // ✅ Case 2: Email exists but incomplete signup → allow OTP resend
+        return saveAndSendOtp();
       }
 
       // create email-only user then send OTP
