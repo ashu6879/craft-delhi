@@ -221,11 +221,11 @@ exports.getStoreDetails = (sellerId, callback) => {
 
     FROM products p
 
-    LEFT JOIN product_categories pc
+    LEFT JOIN product_categories pc 
       ON pc.id = p.category_id
 
     -- Product Reviews count + average rating
-    LEFT JOIN (ca
+    LEFT JOIN (
       SELECT 
         target_id,
         COUNT(*) AS total_review,
@@ -254,7 +254,7 @@ exports.getStoreDetails = (sellerId, callback) => {
         target_id AS seller_id,
         ROUND(
           (SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) * 100.0) 
-          / COUNT(*), 
+          / COUNT(*),
         2) AS positive_rating_percentage
       FROM reviews
       WHERE type = 'seller'
