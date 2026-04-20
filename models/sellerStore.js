@@ -205,6 +205,7 @@ exports.getStoreDetails = (sellerId, callback) => {
   const sql = `
     SELECT 
       pc.name AS category_name,
+      pc.category_image,
       p.*,
       ss.store_created_date,
       ss.description AS store_description,
@@ -267,7 +268,7 @@ exports.getStoreDetails = (sellerId, callback) => {
   db.query(sql, [sellerId], (err, results) => {
     if (err) return callback(err);
 
-    const categoriesSet = new Set();
+    const categoriesMap = new Map();
     const productsMap = new Map();
     const videos = new Set();
     const reels = new Set();
@@ -277,7 +278,12 @@ exports.getStoreDetails = (sellerId, callback) => {
 
       // Categories
       if (row.category_name) {
-        categoriesSet.add(row.category_name);
+        if (!categoriesMap.has(row.category_name)) {
+          categoriesMap.set(row.category_name, {
+            name: row.category_name,
+            image: row.category_image   // ✅ ADD THIS
+          });
+        }
       }
 
       // Store Data
@@ -325,7 +331,7 @@ exports.getStoreDetails = (sellerId, callback) => {
     });
 
     callback(null, {
-      categories: [...categoriesSet],
+      categories: [...categoriesMap.values()],
       products: [...productsMap.values()],
       store_data: [...storesMap.values()], // ✅ separate store array
       media: {
