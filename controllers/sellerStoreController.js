@@ -239,7 +239,7 @@ exports.sellerProductsViewbyID = (req, res) => {
 exports.getStore = (req, res) => {
   const store_slug = req.params.store_slug;
 
-  if (!store_slug || isNaN(store_slug)) {
+  if (!store_slug) {
     return res.status(400).json({ status: false, message: 'Invalid store slug' });
   }
 
