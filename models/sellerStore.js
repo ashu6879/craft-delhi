@@ -224,6 +224,7 @@ exports.getStoreDetails = (store_slug, callback) => {
 
     LEFT JOIN product_categories pc 
       ON pc.id = p.category_id
+      AND pc.parent_id IS NULL
 
     -- Product Reviews count + average rating
     LEFT JOIN (
