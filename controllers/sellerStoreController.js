@@ -237,13 +237,13 @@ exports.sellerProductsViewbyID = (req, res) => {
 };
 
 exports.getStore = (req, res) => {
-  const sellerId = req.params.store_id;
+  const store_slug = req.params.store_slug;
 
-  if (!sellerId || isNaN(sellerId)) {
-    return res.status(400).json({ status: false, message: 'Invalid seller ID' });
+  if (!store_slug || isNaN(store_slug)) {
+    return res.status(400).json({ status: false, message: 'Invalid store slug' });
   }
 
-  SellerStore.getStoreDetails(sellerId, (err, store) => {
+  SellerStore.getStoreDetails(store_slug, (err, store) => {
     if (err) {
       console.error('MySQL error:', err);
       return res.status(500).json({ status: false, message: 'Internal server error' });
