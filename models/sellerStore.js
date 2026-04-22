@@ -183,7 +183,7 @@ exports.getSaleSummary = (sellerId, callback) => {
     callback(null, results[0]);
   });
 };
-exports.getAllProductsForSeller = (seller_id,callback) => {
+exports.getAllProductsForSeller = (seller_id, callback) => {
   const sql = `
     SELECT p.*,
       pc.name AS category_name
@@ -192,24 +192,26 @@ exports.getAllProductsForSeller = (seller_id,callback) => {
     WHERE p.seller_id = ?
     ORDER BY p.created_at DESC
   `;
-  db.query(sql,[seller_id], callback);
+  db.query(sql, [seller_id], callback);
 };
 
-exports.getAllProductsForSellerbyID = (seller_id,product_id,callback) => {
+exports.getAllProductsForSellerbyID = (seller_id, product_id, callback) => {
   const sql = `
     SELECT p.*
     FROM products p where p.seller_id = ? and p.id = ?
     ORDER BY p.created_at DESC
   `;
-  db.query(sql,[seller_id,product_id], callback);
+  db.query(sql, [seller_id, product_id], callback);
 };
 
 exports.getStoreDetails = (store_username, callback) => {
   const sql = `
     SELECT 
-      pc.name AS category_name,
-      pc.category_image,
+      COALESCE(parent_cat.name, pc.name) AS category_name,
+      COALESCE(parent_cat.category_image, pc.category_image) AS category_image,
+
       p.*,
+
       ss.store_created_date,
       ss.description AS store_description,
       ss.store_name,
@@ -220,16 +222,19 @@ exports.getStoreDetails = (store_username, callback) => {
 
       COALESCE(o.total_order, 0) AS total_order,
 
-      -- Seller Positive Rating %
       COALESCE(sr.positive_rating_percentage, 0) AS seller_positive_rating_percentage
 
     FROM products p
 
+    -- Product category (can be sub or main)
     LEFT JOIN product_categories pc 
       ON pc.id = p.category_id
-      AND pc.parent_id IS NULL
 
-    -- Product Reviews count + average rating
+    -- Parent category (if exists)
+    LEFT JOIN product_categories parent_cat
+      ON parent_cat.id = pc.parent_id
+
+    -- Reviews
     LEFT JOIN (
       SELECT 
         target_id,
@@ -240,7 +245,7 @@ exports.getStoreDetails = (store_username, callback) => {
       GROUP BY target_id
     ) r ON r.target_id = p.id
 
-    -- Orders count
+    -- Orders
     LEFT JOIN (
       SELECT 
         product_id,
@@ -249,11 +254,11 @@ exports.getStoreDetails = (store_username, callback) => {
       GROUP BY product_id
     ) o ON o.product_id = p.id
 
-    -- Seller Store Info
+    -- Seller store
     LEFT JOIN seller_stores ss 
       ON ss.seller_id = p.seller_id
 
-    -- Seller Positive Rating %
+    -- Seller rating %
     LEFT JOIN (
       SELECT 
         target_id AS seller_id,
