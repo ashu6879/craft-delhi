@@ -185,8 +185,11 @@ exports.getSaleSummary = (sellerId, callback) => {
 };
 exports.getAllProductsForSeller = (seller_id,callback) => {
   const sql = `
-    SELECT p.*
-    FROM products p where p.seller_id = ?
+    SELECT p.*,
+      pc.name AS category_name,
+    FROM products p
+    LEFT JOIN product_categories pc ON pc.id = p.category_id
+    WHERE p.seller_id = ?
     ORDER BY p.created_at DESC
   `;
   db.query(sql,[seller_id], callback);
