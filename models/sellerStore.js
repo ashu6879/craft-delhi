@@ -201,7 +201,7 @@ exports.getAllProductsForSellerbyID = (seller_id,product_id,callback) => {
   db.query(sql,[seller_id,product_id], callback);
 };
 
-exports.getStoreDetails = (store_slug, callback) => {
+exports.getStoreDetails = (store_username, callback) => {
   const sql = `
     SELECT 
       pc.name AS category_name,
@@ -263,10 +263,10 @@ exports.getStoreDetails = (store_slug, callback) => {
       GROUP BY target_id
     ) sr ON sr.seller_id = p.seller_id
 
-    WHERE ss.slug = ?;
+    WHERE ss.store_username = ?;
   `;
 
-  db.query(sql, [store_slug], (err, results) => {
+  db.query(sql, [store_username], (err, results) => {
     if (err) return callback(err);
 
     const categoriesMap = new Map();

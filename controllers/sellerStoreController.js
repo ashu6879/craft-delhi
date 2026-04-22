@@ -237,13 +237,13 @@ exports.sellerProductsViewbyID = (req, res) => {
 };
 
 exports.getStore = (req, res) => {
-  const store_slug = req.params.store_slug;
+  const store_username = req.params.store_username;
 
-  if (!store_slug) {
-    return res.status(400).json({ status: false, message: 'Invalid store slug' });
+  if (!store_username) {
+    return res.status(400).json({ status: false, message: 'Invalid store username' });
   }
 
-  SellerStore.getStoreDetails(store_slug, (err, store) => {
+  SellerStore.getStoreDetails(store_username, (err, store) => {
     if (err) {
       console.error('MySQL error:', err);
       return res.status(500).json({ status: false, message: 'Internal server error' });

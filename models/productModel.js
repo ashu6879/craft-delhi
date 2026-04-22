@@ -34,7 +34,7 @@ exports.getallProducts = (userId, callback) => {
       p.main_image_url,
       p.price, 
       s.store_name,
-      s.slug as store_slug,
+      s.store_username,
 
       -- favourite flag
       CASE 
