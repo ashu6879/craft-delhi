@@ -186,7 +186,7 @@ exports.getSaleSummary = (sellerId, callback) => {
 exports.getAllProductsForSeller = (seller_id,callback) => {
   const sql = `
     SELECT p.*,
-      pc.name AS category_name,
+      pc.name AS category_name
     FROM products p
     LEFT JOIN product_categories pc ON pc.id = p.category_id
     WHERE p.seller_id = ?
