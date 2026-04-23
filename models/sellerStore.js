@@ -209,6 +209,7 @@ exports.getStoreDetails = (store_username, callback) => {
     SELECT 
       COALESCE(parent_cat.name, pc.name) AS category_name,
       COALESCE(parent_cat.category_image, pc.category_image) AS category_image,
+      COALESCE(parent_cat.id, pc.id) AS category_id,
 
       p.*,
 
