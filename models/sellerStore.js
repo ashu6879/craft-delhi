@@ -212,7 +212,7 @@ exports.getStoreDetails = (store_username, callback) => {
       pc.id AS category_id,              -- child (real)
       pc.parent_id AS parent_category_id,
       pc.name AS category_name,          -- 👈 IMPORTANT (child name)
-      pc.category_image AS category_image
+      pc.category_image AS category_image,
 
       p.*,
 
