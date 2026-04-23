@@ -143,6 +143,7 @@ exports.getProductByCategory = (category_id, callback) => {
       p.*,
       pc.name AS category_name,
       s.store_name,
+      s.store_username,
 
       COALESCE(r.total_review, 0) AS total_review,
       COALESCE(r.avg_rating, 0) AS average_rating,
