@@ -209,10 +209,7 @@ exports.getStoreDetails = (store_username, callback) => {
     SELECT 
       COALESCE(parent_cat.name, pc.name) AS category_name,
       COALESCE(parent_cat.category_image, pc.category_image) AS category_image,
-      pc.id AS category_id,              -- child (real)
-      pc.parent_id AS parent_category_id,
-      pc.name AS category_name,          -- 👈 IMPORTANT (child name)
-      pc.category_image AS category_image,
+      COALESCE(parent_cat.id, pc.id) AS w,
 
       p.*,
 
@@ -291,12 +288,11 @@ exports.getStoreDetails = (store_username, callback) => {
 
       // Categories
       if (row.category_name) {
-        if (!categoriesMap.has(row.category_id)) {
-          categoriesMap.set(row.category_id, {
-            id: row.category_id,
+        if (!categoriesMap.has(row.w)) {
+          categoriesMap.set(row.w, {
+            id: row.w,
             name: row.category_name,
-            image: row.category_image,
-            parent_id: row.parent_category_id
+            image: row.category_image
           });
         }
       }
