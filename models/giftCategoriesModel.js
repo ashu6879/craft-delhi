@@ -103,6 +103,7 @@ exports.getProductbyGiftSlug = (slug, callback) => {
   const sql = `
     SELECT 
       p.*,
+      p.seller_id as storeId,
       pc.name AS category_name,
       s.store_name,
       s.store_username,
