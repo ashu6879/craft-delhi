@@ -82,7 +82,12 @@ exports.getUserEmail = (user_id,callback) => {
 
 exports.getTotalProducts = (callback) => {
   const sql = `
-    SELECT * from products;
+    SELECT 
+      p.*, 
+      pc.name AS category_name
+    FROM products p
+    LEFT JOIN product_categories pc 
+      ON pc.id = p.category_id;
   `;
 
   db.query(sql, (err, results) => {
